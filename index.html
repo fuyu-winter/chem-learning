@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高校化学 学習ポータル</title>
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Inter & Noto Sans JP) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- MathJax 3 & mhchem (LaTeX・化学式レンダリング用) -->
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+                packages: {'[+]': ['mhchem']}
+            },
+            loader: {load: ['[tex]/mhchem']}
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        chem: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        teal: {
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Noto Sans JP', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Noto Sans JP', 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .tab-btn.active {
+            color: #0284c7;
+            border-bottom-color: #0284c7;
+            background-color: #f0f9ff;
+        }
+        .card-hover {
+            transition: all 0.25s ease-in-out;
+        }
+        .card-hover:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px -5px rgba(14, 165, 233, 0.15), 0 8px 10px -6px rgba(14, 165, 233, 0.1);
+        }
+        /* スクロールバーのカスタマイズ */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- ヘッダー / ナビゲーションバー -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16 gap-4">
+                <!-- ロゴ & タイトル -->
+                <div class="flex items-center space-x-3 cursor-pointer" onclick="navigateTo('home')">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-chem-600 to-teal-500 flex items-center justify-center text-white shadow-md">
+                        <i class="fa-solid font-bold fa-flask-vial text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-bold leading-tight text-slate-800">高校化学ナビ</h1>
+                        <p class="text-xs text-slate-500 font-medium">Chemistry Learning Portal</p>
+                    </div>
+                </div>
+
+                <!-- リアルタイム検索バー -->
+                <div class="flex-1 max-w-xs sm:max-w-md relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                    </div>
+                    <input type="text" id="searchInput" oninput="handleSearch()" 
+                           placeholder="キーワード・単元名で検索（例: モル、酸、アルケン）" 
+                           class="w-full pl-9 pr-8 py-2 bg-slate-100 hover:bg-slate-50 focus:bg-white text-sm text-slate-800 rounded-full border border-transparent focus:border-chem-500 focus:outline-none focus:ring-2 focus:ring-chem-500/20 transition-all">
+                    <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+                        <i class="fa-solid fa-circle-xmark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 階層1: メインタブナビゲーション -->
+            <nav class="flex space-x-2 border-t border-slate-100 overflow-x-auto no-scrollbar pt-1">
+                <button id="tab-chem-basic" onclick="switchTab('chem-basic')" class="tab-btn active px-5 py-3 text-sm font-semibold text-slate-600 border-b-2 border-transparent hover:text-chem-600 transition-colors flex items-center space-x-2 whitespace-nowrap">
+                    <i class="fa-solid fa-atom text-chem-500"></i>
+                    <span>化学基礎</span>
+                </button>
+                <button id="tab-chem-advanced" onclick="switchTab('chem-advanced')" class="tab-btn px-5 py-3 text-sm font-semibold text-slate-600 border-b-2 border-transparent hover:text-chem-600 transition-colors flex items-center space-x-2 whitespace-nowrap">
+                    <i class="fa-solid fa-vial-virus text-teal-500"></i>
+                    <span>化学</span>
+                </button>
+                <button id="tab-experiments" onclick="switchTab('experiments')" class="tab-btn px-5 py-3 text-sm font-semibold text-slate-600 border-b-2 border-transparent hover:text-chem-600 transition-colors flex items-center space-x-2 whitespace-nowrap">
+                    <i class="fa-solid fa-flask-sharp text-purple-500"></i>
+                    <span>実験</span>
+                </button>
+                <button id="tab-exercises" onclick="switchTab('exercises')" class="tab-btn px-5 py-3 text-sm font-semibold text-slate-600 border-b-2 border-transparent hover:text-chem-600 transition-colors flex items-center space-x-2 whitespace-nowrap">
+                    <i class="fa-solid fa-pen-to-square text-amber-500"></i>
+                    <span>演習</span>
+                </button>
+                <button id="tab-basic-training" onclick="switchTab('basic-training')" class="tab-btn px-5 py-3 text-sm font-semibold text-slate-600 border-b-2 border-transparent hover:text-chem-600 transition-colors flex items-center space-x-2 whitespace-nowrap">
+                    <i class="fa-solid fa-gamepad text-emerald-500"></i>
+                    <span>基礎特訓</span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- メインコンテンツエリア -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        <!-- パンくずリスト -->
+        <nav id="breadcrumb" class="flex items-center text-xs sm:text-sm text-slate-500 mb-6 bg-white px-4 py-2.5 rounded-lg border border-slate-200/80 shadow-sm">
+            <span class="hover:text-chem-600 cursor-pointer font-medium flex items-center" onclick="navigateTo('home')">
+                <i class="fa-solid fa-house mr-1.5 text-xs"></i> ホーム
+            </span>
+            <span id="bc-category-wrapper" class="hidden flex items-center">
+                <i class="fa-solid fa-chevron-right text-[10px] mx-2 text-slate-300"></i>
+                <span id="bc-category" class="hover:text-chem-600 cursor-pointer font-medium" onclick="navigateTo('category')">化学基礎</span>
+            </span>
+            <span id="bc-unit-wrapper" class="hidden flex items-center">
+                <i class="fa-solid fa-chevron-right text-[10px] mx-2 text-slate-300"></i>
+                <span id="bc-unit" class="text-slate-800 font-semibold truncate max-w-[200px] sm:max-w-none">単元名</span>
+            </span>
+        </nav>
+
+        <!-- 検索結果表示エリア (非表示デフォルト) -->
+        <section id="searchResultsContainer" class="hidden mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-bold text-slate-800 flex items-center">
+                    <i class="fa-solid fa-list-check text-chem-600 mr-2"></i> 検索結果
+                </h2>
+                <span id="searchResultCount" class="text-xs font-semibold px-2.5 py-1 bg-slate-200 text-slate-700 rounded-full">0 件</span>
+            </div>
+            <div id="searchResultsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <!-- JavaScriptで動的生成 -->
+            </div>
+        </section>
+
+        <!-- タブ1: 化学基礎 (階層2) -->
+        <section id="view-chem-basic" class="tab-content">
+            <div class="bg-gradient-to-r from-chem-700 to-chem-900 rounded-2xl p-6 sm:p-8 text-white mb-8 shadow-md">
+                <div class="max-w-2xl">
+                    <span class="px-3 py-1 bg-chem-500/30 text-chem-100 border border-chem-400/30 text-xs font-semibold rounded-full uppercase tracking-wider">高校1・2年対象</span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold mt-3 mb-2">化学基礎 (Chemistry Basics)</h2>
+                    <p class="text-chem-100 text-sm leading-relaxed">原子の構造や化学結合、物質量（モル）、酸・塩基、酸化還元など、化学の基礎となる考え方を学びます。</p>
+                </div>
+            </div>
+            <div id="grid-chem-basic" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- JavaScriptで単元カードを生成 -->
+            </div>
+        </section>
+
+        <!-- タブ2: 化学 (階層2) -->
+        <section id="view-chem-advanced" class="tab-content hidden">
+            <div class="bg-gradient-to-r from-teal-700 to-slate-900 rounded-2xl p-6 sm:p-8 text-white mb-8 shadow-md">
+                <div class="max-w-2xl">
+                    <span class="px-3 py-1 bg-teal-500/30 text-teal-100 border border-teal-400/30 text-xs font-semibold rounded-full uppercase tracking-wider">高校2・3年対象</span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold mt-3 mb-2">化学 (Advanced Chemistry)</h2>
+                    <p class="text-teal-100 text-sm leading-relaxed">物質の状態変化、化学平衡、理論化学、無機物質、有機化合物、高分子化合物など、より高度で深い化学を学びます。</p>
+                </div>
+            </div>
+            <div id="grid-chem-advanced" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- JavaScriptで単元カードを生成 -->
+            </div>
+        </section>
+
+        <!-- タブ3: 実験 -->
+        <section id="view-experiments" class="tab-content hidden">
+            <div class="bg-gradient-to-r from-purple-700 to-indigo-900 rounded-2xl p-6 sm:p-8 text-white mb-8 shadow-md">
+                <div class="max-w-2xl">
+                    <span class="px-3 py-1 bg-purple-500/30 text-purple-100 border border-purple-400/30 text-xs font-semibold rounded-full uppercase tracking-wider">実験・探究</span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold mt-3 mb-2">化学実験ライブラリ</h2>
+                    <p class="text-purple-100 text-sm leading-relaxed">教科書に出てくる代表的な化学実験の操作手順、器具の扱い方、事故防止の注意点、実験レポート用プリントのアーカイブです。</p>
+                </div>
+            </div>
+
+            <!-- 実験カードグリッド -->
+            <div id="grid-experiments" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- JavaScriptで動的生成 -->
+            </div>
+        </section>
+
+        <!-- タブ4: 演習 -->
+        <section id="view-exercises" class="tab-content hidden">
+            <div class="bg-gradient-to-r from-amber-600 to-orange-800 rounded-2xl p-6 sm:p-8 text-white mb-6 shadow-md">
+                <div class="max-w-2xl">
+                    <span class="px-3 py-1 bg-amber-500/30 text-amber-100 border border-amber-400/30 text-xs font-semibold rounded-full uppercase tracking-wider">定期テスト・受験対策</span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold mt-3 mb-2">演習ライブラリ</h2>
+                    <p class="text-amber-100 text-sm leading-relaxed">ダウンロードして解く計算・穴埋め演習問題プリントで効率よくアウトプット学習ができます。</p>
+                </div>
+            </div>
+
+            <!-- ジャンル選択サブタブ -->
+            <div class="flex items-center space-x-2 border-b border-slate-200 mb-6 pb-2 overflow-x-auto no-scrollbar">
+                <button id="ex-subtab-all" onclick="switchExerciseSubTab('all')" class="ex-subtab-btn active px-4 py-2 rounded-xl text-xs font-bold transition-all bg-amber-500 text-white shadow-sm">
+                    <i class="fa-solid fa-layer-group mr-1.5"></i> すべて表示
+                </button>
+                <button id="ex-subtab-exam" onclick="switchExerciseSubTab('exam')" class="ex-subtab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200">
+                    <i class="fa-solid fa-graduation-cap mr-1.5 text-indigo-600"></i> 大学入試演習
+                </button>
+                <button id="ex-subtab-unit" onclick="switchExerciseSubTab('unit')" class="ex-subtab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200">
+                    <i class="fa-solid fa-folder-open mr-1.5 text-amber-500"></i> 単元別演習問題集
+                </button>
+            </div>
+
+            <div class="space-y-8">
+                <!-- 1. 大学入試演習 -->
+                <div id="ex-section-exam" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-bold text-slate-800 flex items-center">
+                            <i class="fa-solid fa-graduation-cap text-indigo-600 mr-2 text-xl"></i> 大学入試演習（共通テスト・二次試験対策）
+                        </h3>
+                        <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">入試対策</span>
+                    </div>
+                    <p class="text-xs text-slate-500 mb-6">共通テスト対策、国公立・私立大学の過去問演習や分野横断総合問題のアーカイブです。</p>
+
+                    <div id="examPrintsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- JavaScriptで動的生成 -->
+                    </div>
+                </div>
+
+                <!-- 2. 分野別演習問題集・解答アーカイブ -->
+                <div id="ex-section-unit" class="subcontent-panel">
+                    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                        <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                            <i class="fa-solid fa-folder-open text-amber-500 mr-2 text-xl"></i> 単元別演習問題集・解答アーカイブ
+                        </h3>
+                        <p class="text-xs text-slate-500 mb-6">定期試験対策や計算集中トレーニング用の演習プリント（PDF）です。各自でダウンロード・印刷して学習してください。</p>
+
+                        <div id="exercisePrintsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- 動的生成されるプリント一覧カード -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- タブ5: 基礎特訓 (Webアプリリンク集) -->
+        <section id="view-basic-training" class="tab-content hidden">
+            <div class="bg-gradient-to-r from-emerald-600 to-teal-800 rounded-2xl p-6 sm:p-8 text-white mb-8 shadow-md">
+                <div class="max-w-2xl">
+                    <span class="px-3 py-1 bg-emerald-500/30 text-emerald-100 border border-emerald-400/30 text-xs font-semibold rounded-full uppercase tracking-wider">インタラクティブ学習</span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold mt-3 mb-2">基礎特訓 Webアプリ集</h2>
+                    <p class="text-emerald-100 text-sm leading-relaxed">ゲーム感覚で知識をチェックできる暗記アプリや計算特訓アプリです。単元ごとの復習や隙間時間の学習に活用しよう！</p>
+                </div>
+            </div>
+
+            <!-- Webアプリ一覧カードグリッド -->
+            <div id="grid-basic-training" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- JavaScriptで動的生成 -->
+            </div>
+        </section>
+
+        <!-- 階層3: 単元詳細画面 (動画・プリント・要点・チェックリスト) -->
+        <section id="view-unit-detail" class="hidden">
+            <!-- 単元ヘッダー -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-6 mb-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center space-x-2 mb-2">
+                        <span id="detailBadge" class="px-3 py-0.5 text-xs font-bold rounded-full bg-chem-100 text-chem-800">化学基礎</span>
+                        <span id="detailSubtext" class="text-xs text-slate-500">単元学習</span>
+                    </div>
+                    <h2 id="detailTitle" class="text-2xl font-bold text-slate-900">単元タイトル</h2>
+                    <p id="detailDescription" class="text-sm text-slate-600 mt-1">単元の概要説明がここに入ります。</p>
+                </div>
+                <button onclick="goBackToCategory()" class="self-start md:self-center inline-flex items-center px-4 py-2 border border-slate-300 text-sm font-medium rounded-xl text-slate-700 bg-white hover:bg-slate-50 transition-colors shadow-sm shrink-0">
+                    <i class="fa-solid fa-arrow-left mr-2"></i> 単元一覧へ戻る
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 左列: 動画＆資料 (2カラム幅) -->
+                <div class="lg:col-span-2 space-x-0 space-y-6">
+                    <!-- 動画セクション -->
+                    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                        <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center">
+                            <i class="fa-solid fa-circle-play text-red-500 mr-2 text-lg"></i> 解説授業動画
+                        </h3>
+                        <div class="aspect-video w-full bg-slate-900 rounded-xl overflow-hidden relative shadow-inner">
+                            <iframe id="detailVideoIframe" class="w-full h-full" src="" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+                        </div>
+                    </div>
+
+                    <!-- 要点まとめカード -->
+                    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                        <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center">
+                            <i class="fa-solid fa-lightbulb text-amber-500 mr-2 text-lg"></i> 重要ポイント・公式まとめ
+                        </h3>
+                        <div id="detailKeyPoints" class="prose prose-slate max-w-none text-sm space-y-3">
+                            <!-- 動的に生成 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右列: プリント＆チェックリスト (1カラム幅) -->
+                <div class="space-y-6">
+                    <!-- 授業プリント・資料ダウンロード -->
+                    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                        <h3 class="text-base font-bold text-slate-800 mb-4 flex items-center">
+                            <i class="fa-solid fa-file-pdf text-chem-600 mr-2 text-lg"></i> 授業プリント・資料
+                        </h3>
+                        <div id="detailFiles" class="space-y-3">
+                            <!-- 動的に生成 -->
+                        </div>
+                    </div>
+
+                    <!-- 理解度チェックリスト -->
+                    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-base font-bold text-slate-800 flex items-center">
+                                <i class="fa-solid fa-square-check text-emerald-500 mr-2 text-lg"></i> 理解度チェック
+                            </h3>
+                            <span id="checklistProgress" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">0/0 達成</span>
+                        </div>
+                        <p class="text-xs text-slate-500 mb-3">学習が終わったらチェックを入れよう！</p>
+                        <div id="detailChecklist" class="space-y-2.5">
+                            <!-- 動的に生成 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- フッター -->
+    <footer class="bg-white border-t border-slate-200 mt-12 py-6">
+        <div class="max-w-7xl mx-auto px-4 text-center text-xs text-slate-500">
+            <p>© 高校化学 学習ポータル - Googleサイト埋め込み対応コンテンツナビゲーター</p>
+        </div>
+    </footer>
+
+    <script>
+        // 現在のアプリケーション状態
+        let currentState = {
+            currentTab: 'chem-basic', // 'chem-basic', 'chem-advanced', 'experiments', 'exercises'
+            currentView: 'category',  // 'category', 'unit-detail'
+            currentUnitId: null,
+            userChecklistState: {}   // { unitId: [true, false, ...] }
+        };
+
+        let currentExerciseSubTab = 'all';
+
+        // 初期化処理
+        window.addEventListener('DOMContentLoaded', () => {
+            loadChecklistFromStorage();
+            renderCategoryGrids();
+            renderExperimentsGrid();
+            renderExercisePrints();
+            renderExamPrints();
+            renderDrillsGrid();
+            switchTab('chem-basic');
+            renderMath();
+        });
+
+        // LaTeX・数式・化学式の動的レンダリング実行（読み込み完了を安全に待機）
+        function renderMath() {
+            if (window.MathJax) {
+                if (window.MathJax.startup && window.MathJax.startup.promise) {
+                    window.MathJax.startup.promise.then(() => {
+                        return window.MathJax.typesetPromise();
+                    }).catch((err) => console.error('MathJax error:', err));
+                } else if (window.MathJax.typesetPromise) {
+                    window.MathJax.typesetPromise().catch((err) => console.error('MathJax error:', err));
+                }
+            }
+        }
+
+        // タブ切り替え処理
+        function switchTab(tabId) {
+            currentState.currentTab = tabId;
+            
+            // タブボタンのスタイル変更
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            const activeBtn = document.getElementById(`tab-${tabId}`);
+            if (activeBtn) activeBtn.classList.add('active');
+
+            // 検索入力の初期化
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) searchInput.value = '';
+            const clearSearchBtn = document.getElementById('clearSearchBtn');
+            if (clearSearchBtn) clearSearchBtn.classList.add('hidden');
+            const searchResultsContainer = document.getElementById('searchResultsContainer');
+            if (searchResultsContainer) searchResultsContainer.classList.add('hidden');
+
+            // ビューの表示制御
+            document.querySelectorAll('.tab-content').forEach(view => view.classList.add('hidden'));
+            const unitDetailView = document.getElementById('view-unit-detail');
+            if (unitDetailView) unitDetailView.classList.add('hidden');
+
+            if (tabId === 'experiments') {
+                const expView = document.getElementById('view-experiments');
+                if (expView) expView.classList.remove('hidden');
+                updateBreadcrumb('実験');
+            } else if (tabId === 'exercises') {
+                const exView = document.getElementById('view-exercises');
+                if (exView) exView.classList.remove('hidden');
+                updateBreadcrumb('演習');
+            } else if (tabId === 'basic-training') {
+                const drillView = document.getElementById('view-basic-training');
+                if (drillView) drillView.classList.remove('hidden');
+                updateBreadcrumb('基礎特訓');
+            } else {
+                currentState.currentView = 'category';
+                const viewEl = document.getElementById(`view-${tabId}`);
+                if (viewEl) viewEl.classList.remove('hidden');
+                
+                const categoryName = tabId === 'chem-basic' ? '化学基礎' : '化学';
+                updateBreadcrumb(categoryName);
+            }
+        }
+
+        // 演習ジャンル（サブタブ）切り替え処理
+        function switchExerciseSubTab(subTabId) {
+            currentExerciseSubTab = subTabId;
+            const examSection = document.getElementById('ex-section-exam');
+            const unitSection = document.getElementById('ex-section-unit');
+
+            // サブタブボタンのスタイル変更
+            document.querySelectorAll('.ex-subtab-btn').forEach(btn => {
+                btn.className = 'ex-subtab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200';
+            });
+
+            const activeBtn = document.getElementById(`ex-subtab-${subTabId}`);
+            if (activeBtn) {
+                activeBtn.className = 'ex-subtab-btn active px-4 py-2 rounded-xl text-xs font-bold transition-all bg-amber-500 text-white shadow-sm';
+            }
+
+            // ジャンルセクションの表示・非表示切り替え
+            if (subTabId === 'all') {
+                if (examSection) examSection.classList.remove('hidden');
+                if (unitSection) unitSection.classList.remove('hidden');
+            } else if (subTabId === 'exam') {
+                if (examSection) examSection.classList.remove('hidden');
+                if (unitSection) unitSection.classList.add('hidden');
+            } else if (subTabId === 'unit') {
+                if (examSection) examSection.classList.add('hidden');
+                if (unitSection) unitSection.classList.remove('hidden');
+            }
+        }
+
+        // 基礎特訓 Webアプリカード一覧の描画
+        function renderDrillsGrid() {
+            const grid = document.getElementById('grid-basic-training');
+            if (!grid) return;
+
+            let html = '';
+            const visibleDrills = DRILLS_DATA.filter(item => !item.hidden);
+
+            visibleDrills.forEach(item => {
+                html += `
+                    <div class="bg-white border border-slate-200/90 rounded-2xl p-6 card-hover flex flex-col justify-between shadow-sm relative overflow-hidden group">
+                        <div>
+                            <div class="flex items-center justify-between mb-3">
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                                        ${item.category}
+                                    </span>
+                                    <span class="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                                        ${item.unitName}
+                                    </span>
+                                </div>
+                                ${item.badge ? `<span class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-full"><i class="fa-solid fa-star text-amber-500 mr-0.5"></i> ${item.badge}</span>` : ''}
+                            </div>
+
+                            <div class="flex items-start space-x-3 mb-2">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 mt-0.5">
+                                    <i class="fa-solid ${item.icon || 'fa-gamepad'} text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-slate-900 group-hover:text-emerald-600 transition-colors">${item.title}</h3>
+                                </div>
+                            </div>
+                            
+                            <p class="text-xs text-slate-600 leading-relaxed mb-5">${item.description}</p>
+                        </div>
+
+                        <div class="pt-3 border-t border-slate-100 flex items-center justify-between">
+                            <span class="text-[11px] text-slate-400 font-medium">ブラウザで即起動</span>
+                            <a href="${item.url}" target="_blank" rel="noopener noreferrer" 
+                               class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition-all shadow-sm flex items-center group-hover:scale-105">
+                                アプリを起動 <i class="fa-solid fa-arrow-up-right-from-square ml-1.5 text-[10px]"></i>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            });
+
+            if (html === '') {
+                html = `<p class="text-xs text-slate-400 col-span-full text-center py-12 bg-white rounded-2xl border border-slate-200">公開中の基礎特訓アプリはありません。</p>`;
+            }
+
+            grid.innerHTML = html;
+        }
+
+        // 大学入試演習プリント一覧の描画
+        function renderExamPrints() {
+            const grid = document.getElementById('examPrintsGrid');
+            if (!grid) return;
+
+            let html = '';
+            const visibleExams = EXAM_PRINTS_DATA.filter(item => !item.hidden);
+
+            visibleExams.forEach(item => {
+                html += `
+                    <div class="p-4 rounded-xl border border-slate-200 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all flex items-center justify-between group">
+                        <div class="flex items-center space-x-3 truncate mr-2">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-file-pdf text-lg"></i>
+                            </div>
+                            <div class="truncate">
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-indigo-100 text-indigo-700 mr-2">${item.tag || '入試'}</span>
+                                <h4 class="text-sm font-bold text-slate-800 truncate group-hover:text-indigo-700 mt-1">${item.title}</h4>
+                                ${item.description ? `<p class="text-xs text-slate-500 truncate mt-0.5">${item.description}</p>` : ''}
+                            </div>
+                        </div>
+                        <a href="${item.url}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 bg-slate-100 group-hover:bg-indigo-600 group-hover:text-white text-slate-600 text-xs font-bold rounded-lg transition-colors flex items-center shrink-0">
+                            DL <i class="fa-solid fa-download ml-1 text-[10px]"></i>
+                        </a>
+                    </div>
+                `;
+            });
+
+            if (html === '') {
+                html = `<p class="text-xs text-slate-400 col-span-full text-center py-6">公開中の大学入試演習プリントはありません。</p>`;
+            }
+            grid.innerHTML = html;
+        }
+
+        // 演習プリント一覧の描画
+        function renderExercisePrints() {
+            const grid = document.getElementById('exercisePrintsGrid');
+            if (!grid) return;
+
+            let html = '';
+            UNITS_DATA.filter(u => !u.hidden).forEach(unit => {
+                const visibleFiles = (unit.files || []).filter(f => !f.hidden);
+                visibleFiles.forEach(file => {
+                    html += `
+                        <div class="p-4 rounded-xl border border-slate-200 hover:border-amber-400 hover:bg-amber-50/30 transition-all flex items-center justify-between group">
+                            <div class="flex items-center space-x-3 truncate mr-2">
+                                <div class="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center shrink-0">
+                                    <i class="fa-solid fa-file-pdf text-lg"></i>
+                                </div>
+                                <div class="truncate">
+                                    <span class="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600 mr-2">${unit.title}</span>
+                                    <h4 class="text-sm font-bold text-slate-800 truncate group-hover:text-amber-700 mt-1">${file.name}</h4>
+                                </div>
+                            </div>
+                            <a href="${file.url}" target="_blank" rel="noopener noreferrer" class="px-3 py-1.5 bg-slate-100 group-hover:bg-amber-500 group-hover:text-white text-slate-600 text-xs font-bold rounded-lg transition-colors flex items-center shrink-0">
+                                DL <i class="fa-solid fa-download ml-1 text-[10px]"></i>
+                            </a>
+                        </div>
+                    `;
+                });
+            });
+
+            if (html === '') {
+                html = `<p class="text-xs text-slate-400 col-span-full text-center py-6">配布中の演習プリントはありません。</p>`;
+            }
+            grid.innerHTML = html;
+        }
+
+        // 実験カード一覧の描画
+        function renderExperimentsGrid() {
+            const grid = document.getElementById('grid-experiments');
+            if (!grid) return;
+
+            let html = '';
+            const visibleExps = EXPERIMENTS_DATA.filter(exp => !exp.hidden);
+
+            visibleExps.forEach(exp => {
+                html += `
+                    <div class="bg-white border border-slate-200/90 rounded-2xl overflow-hidden card-hover flex flex-col justify-between shadow-sm">
+                        <div>
+                            <!-- 動画・埋め込み表示 -->
+                            <div class="aspect-video w-full bg-slate-900 relative">
+                                <iframe class="w-full h-full" src="${exp.videoUrl}" title="${exp.title}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                            </div>
+
+                            <div class="p-5">
+                                <div class="flex items-center justify-between mb-2">
+                                    <span class="text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200/60">
+                                        ${exp.category}
+                                    </span>
+                                    <span class="text-xs font-semibold text-purple-600 flex items-center">
+                                        <i class="fa-solid fa-vial mr-1"></i> 実験・観察
+                                    </span>
+                                </div>
+
+                                <h3 class="text-base font-bold text-slate-900 mb-2">${exp.title}</h3>
+                                <p class="text-xs text-slate-600 leading-relaxed mb-4">${exp.description}</p>
+
+                                ${exp.safetyNote ? `
+                                    <div class="p-2.5 bg-amber-50 border border-amber-200/80 rounded-xl mb-4 text-[11px] text-amber-900 flex items-start space-x-2">
+                                        <i class="fa-solid fa-triangle-exclamation text-amber-500 mt-0.5 shrink-0"></i>
+                                        <span class="leading-snug"><strong>事故防止:</strong> ${exp.safetyNote}</span>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        ${exp.sheetName ? `
+                            <div class="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                                <div class="flex items-center space-x-2 truncate mr-2">
+                                    <i class="fa-solid fa-file-pdf text-red-500 text-sm shrink-0"></i>
+                                    <span class="text-xs font-semibold text-slate-700 truncate">${exp.sheetName}</span>
+                                </div>
+                                <a href="${exp.sheetUrl}" target="_blank" rel="noopener noreferrer" 
+                                   class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg transition-colors flex items-center shrink-0 shadow-sm">
+                                    PDF <i class="fa-solid fa-download ml-1 text-[10px]"></i>
+                                </a>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            });
+
+            if (html === '') {
+                html = `<p class="text-xs text-slate-400 col-span-full text-center py-12 bg-white rounded-2xl border border-slate-200">現在公開中の実験動画・資料はありません。</p>`;
+            }
+
+            grid.innerHTML = html;
+        }
+
+        // パンくずリスト更新
+        function updateBreadcrumb(categoryName, unitName = null) {
+            const catWrapper = document.getElementById('bc-category-wrapper');
+            const catEl = document.getElementById('bc-category');
+            const unitWrapper = document.getElementById('bc-unit-wrapper');
+            const unitEl = document.getElementById('bc-unit');
+
+            if (categoryName) {
+                catWrapper.classList.remove('hidden');
+                catWrapper.classList.add('flex');
+                catEl.textContent = categoryName;
+            } else {
+                catWrapper.classList.add('hidden');
+            }
+
+            if (unitName) {
+                unitWrapper.classList.remove('hidden');
+                unitWrapper.classList.add('flex');
+                unitEl.textContent = unitName;
+            } else {
+                unitWrapper.classList.add('hidden');
+            }
+        }
+
+        // ホーム・階層へのナビゲーション
+        function navigateTo(target) {
+            if (target === 'home' || target === 'category') {
+                switchTab(currentState.currentTab);
+            }
+        }
+
+        function goBackToCategory() {
+            switchTab(currentState.currentTab);
+        }
+
+        // 単元カードの一覧描画 (階層2)
+        function renderCategoryGrids() {
+            const basicGrid = document.getElementById('grid-chem-basic');
+            const advGrid = document.getElementById('grid-chem-advanced');
+
+            basicGrid.innerHTML = '';
+            advGrid.innerHTML = '';
+
+            // 非公開(hidden: true)の単元を除外して表示
+            UNITS_DATA.filter(unit => !unit.hidden).forEach(unit => {
+                const cardHtml = createUnitCardHtml(unit);
+                if (unit.category === 'chem-basic') {
+                    basicGrid.insertAdjacentHTML('beforeend', cardHtml);
+                } else if (unit.category === 'chem-advanced') {
+                    advGrid.insertAdjacentHTML('beforeend', cardHtml);
+                }
+            });
+        }
+
+        // 単元カードのHTMLテンプレート
+        function createUnitCardHtml(unit) {
+            const completedCount = getCompletedChecklistCount(unit.id);
+            const totalCount = unit.checklist ? unit.checklist.length : 0;
+
+            return `
+                <div onclick="openUnitDetail('${unit.id}')" class="bg-white border border-slate-200/90 rounded-2xl p-6 card-hover cursor-pointer flex flex-col justify-between relative overflow-hidden group">
+                    <div class="absolute top-0 left-0 w-1.5 h-full bg-${unit.color}-500"></div>
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-${unit.color}-50 text-${unit.color}-700 border border-${unit.color}-200/60">
+                                ${unit.categoryName}
+                            </span>
+                            <div class="w-9 h-9 rounded-xl bg-slate-100 group-hover:bg-${unit.color}-500 group-hover:text-white transition-colors flex items-center justify-center text-slate-500">
+                                <i class="fa-solid ${unit.icon} text-base"></i>
+                            </div>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-900 mb-1 group-hover:text-${unit.color}-600 transition-colors">${unit.title}</h3>
+                        <p class="text-xs font-semibold text-slate-500 mb-3">${unit.subTitle}</p>
+                        <p class="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-4">${unit.description}</p>
+                    </div>
+
+                    <div class="pt-3 border-t border-slate-100 mt-2 flex items-center justify-between text-xs">
+                        <div class="flex items-center space-x-1.5 text-slate-500">
+                            <i class="fa-solid fa-list-check text-emerald-500"></i>
+                            <span>理解度: <strong class="text-slate-800">${completedCount}/${totalCount}</strong></span>
+                        </div>
+                        <span class="font-bold text-${unit.color}-600 group-hover:translate-x-1 transition-transform flex items-center">
+                            学習を始める <i class="fa-solid fa-chevron-right text-[10px] ml-1"></i>
+                        </span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 階層3: 単元詳細画面を開く
+        function openUnitDetail(unitId) {
+            const unit = UNITS_DATA.find(u => u.id === unitId);
+            if (!unit || unit.hidden) return;
+
+            currentState.currentView = 'unit-detail';
+            currentState.currentUnitId = unitId;
+
+            // タブ非表示、詳細画面表示
+            document.querySelectorAll('.tab-content').forEach(view => view.classList.add('hidden'));
+            document.getElementById('searchResultsContainer').classList.add('hidden');
+            document.getElementById('view-unit-detail').classList.remove('hidden');
+
+            // パンくず更新
+            updateBreadcrumb(unit.categoryName, unit.title);
+
+            // ヘッダー情報セット
+            document.getElementById('detailTitle').textContent = unit.title;
+            document.getElementById('detailDescription').textContent = unit.description;
+            document.getElementById('detailBadge').textContent = unit.categoryName;
+            document.getElementById('detailSubtext').textContent = unit.subTitle;
+
+            // 動画セット
+            const iframe = document.getElementById('detailVideoIframe');
+            iframe.src = unit.videoUrl || '';
+
+            // 要点まとめセット
+            const keyPointsContainer = document.getElementById('detailKeyPoints');
+            keyPointsContainer.innerHTML = unit.keyPoints.map(point => `
+                <div class="flex items-start space-x-2.5 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <i class="fa-solid fa-check text-chem-500 mt-0.5 text-xs shrink-0"></i>
+                    <p class="text-slate-700 leading-snug">${point}</p>
+                </div>
+            `).join('');
+
+            // ファイル一覧セット（非公開ファイルを除外）
+            const filesContainer = document.getElementById('detailFiles');
+            const visibleFiles = (unit.files || []).filter(file => !file.hidden);
+
+            if (visibleFiles.length > 0) {
+                filesContainer.innerHTML = visibleFiles.map(file => `
+                    <a href="${file.url}" target="_blank" rel="noopener noreferrer" 
+                       class="flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:border-chem-500 hover:bg-chem-50/50 transition-all group">
+                        <div class="flex items-center space-x-3 truncate mr-2">
+                            <div class="w-8 h-8 rounded-lg bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-file-pdf"></i>
+                            </div>
+                            <span class="text-xs font-semibold text-slate-700 group-hover:text-chem-700 truncate">${file.name}</span>
+                        </div>
+                        <i class="fa-solid fa-download text-slate-400 group-hover:text-chem-600 text-xs shrink-0"></i>
+                    </a>
+                `).join('');
+            } else {
+                filesContainer.innerHTML = `<p class="text-xs text-slate-400">利用可能な配布プリントはありません。</p>`;
+            }
+
+            // チェックリスト描画
+            renderChecklist(unit);
+
+            // ページ上部へスクロール
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // 数式・化学式の再レンダリング
+            renderMath();
+        }
+
+        // チェックリストの描画と状態管理
+        function renderChecklist(unit) {
+            const container = document.getElementById('detailChecklist');
+            const savedState = currentState.userChecklistState[unit.id] || [];
+
+            container.innerHTML = unit.checklist.map((item, index) => {
+                const isChecked = !!savedState[index];
+                return `
+                    <label class="flex items-start space-x-3 p-2.5 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors border border-transparent hover:border-slate-100">
+                        <input type="checkbox" onchange="toggleChecklist('${unit.id}', ${index})" ${isChecked ? 'checked' : ''} 
+                               class="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500">
+                        <span class="text-xs font-medium text-slate-700 leading-snug ${isChecked ? 'line-through text-slate-400' : ''}">${item}</span>
+                    </label>
+                `;
+            }).join('');
+
+            updateChecklistProgress(unit);
+        }
+
+        function toggleChecklist(unitId, index) {
+            if (!currentState.userChecklistState[unitId]) {
+                currentState.userChecklistState[unitId] = [];
+            }
+            currentState.userChecklistState[unitId][index] = !currentState.userChecklistState[unitId][index];
+            
+            saveChecklistToStorage();
+
+            const unit = UNITS_DATA.find(u => u.id === unitId);
+            if (unit) {
+                renderChecklist(unit);
+                renderCategoryGrids(); // 背景カードの進捗表示も更新
+            }
+        }
+
+        function updateChecklistProgress(unit) {
+            const count = getCompletedChecklistCount(unit.id);
+            const total = unit.checklist.length;
+            document.getElementById('checklistProgress').textContent = `${count}/${total} 達成`;
+        }
+
+        function getCompletedChecklistCount(unitId) {
+            const state = currentState.userChecklistState[unitId];
+            if (!state) return 0;
+            return state.filter(Boolean).length;
+        }
+
+        // LocalStorage 保存 & 読み込み
+        function saveChecklistToStorage() {
+            try {
+                localStorage.setItem('chem_portal_checklist', JSON.stringify(currentState.userChecklistState));
+            } catch(e) { console.warn('LocalStorage error:', e); }
+        }
+
+        function loadChecklistFromStorage() {
+            try {
+                const data = localStorage.getItem('chem_portal_checklist');
+                if (data) currentState.userChecklistState = JSON.parse(data);
+            } catch(e) { console.warn('LocalStorage error:', e); }
+        }
+
+        // リアルタイム検索機能
+        function handleSearch() {
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+            const clearBtn = document.getElementById('clearSearchBtn');
+            const searchResultsContainer = document.getElementById('searchResultsContainer');
+            const searchResultsGrid = document.getElementById('searchResultsGrid');
+
+            if (query.length > 0) {
+                clearBtn.classList.remove('hidden');
+                
+                // 全単元から検索（非公開単元は除外）
+                const filtered = UNITS_DATA.filter(unit => {
+                    if (unit.hidden) return false;
+                    return unit.title.toLowerCase().includes(query) ||
+                           unit.subTitle.toLowerCase().includes(query) ||
+                           unit.description.toLowerCase().includes(query) ||
+                           unit.keyPoints.some(kp => kp.toLowerCase().includes(query));
+                });
+
+                // 他のビューを非表示にして検索ビューを表示
+                document.querySelectorAll('.tab-content').forEach(view => view.classList.add('hidden'));
+                document.getElementById('view-unit-detail').classList.add('hidden');
+                searchResultsContainer.classList.remove('hidden');
+
+                document.getElementById('searchResultCount').textContent = `${filtered.length} 件`;
+
+                if (filtered.length > 0) {
+                    searchResultsGrid.innerHTML = filtered.map(unit => createUnitCardHtml(unit)).join('');
+                } else {
+                    searchResultsGrid.innerHTML = `
+                        <div class="col-span-full text-center py-12 bg-white rounded-2xl border border-slate-200">
+                            <i class="fa-solid fa-magnifying-glass text-3xl text-slate-300 mb-3"></i>
+                            <p class="text-sm font-semibold text-slate-600">該当する単元が見つかりませんでした。</p>
+                            <p class="text-xs text-slate-400 mt-1">別のキーワード（例: モル、酸、アルケン）でお試しください。</p>
+                        </div>
+                    `;
+                }
+
+                updateBreadcrumb('検索結果', `「${query}」`);
+            } else {
+                clearSearch();
+            }
+            renderMath();
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('clearSearchBtn').classList.add('hidden');
+            document.getElementById('searchResultsContainer').classList.add('hidden');
+
+            if (currentState.currentView === 'unit-detail') {
+                document.getElementById('view-unit-detail').classList.remove('hidden');
+            } else {
+                const viewEl = document.getElementById(`view-${currentState.currentTab}`);
+                if (viewEl) viewEl.classList.remove('hidden');
+            }
+        }
+
+
+        /* 
+        ==========================================================================
+        ==========================================================================
+        【先生・管理者用 設定データエリア】
+        ※コードの一番下に集めて記述しています。
+        コンテンツの追加・変更・削除、ドライブのリンクURL変更などはここを編集してください。
+        ※「hidden: true」を追加すると、そのコンテンツを生徒から非公開（下書き）にできます。
+        ==========================================================================
+        ==========================================================================
+        */
+
+        /*
+        --------------------------------------------------------------------------
+        ★1. 【単元データ＆配布プリント一覧】★
+        以下の UNITS_DATA 内の「files」の配下に項目を追加すると、
+        単元詳細ページおよび「演習」タブ内の「単元別演習問題集」一覧へ自動反映されます。
+        --------------------------------------------------------------------------
+        */
+        const UNITS_DATA = [
+            // ------------------ 【化学基礎】 ------------------
+            {
+                id: 'basic-1',
+                category: 'chem-basic',
+                categoryName: '化学基礎',
+                title: '物質の構成',
+                subTitle: '原子の構造、元素と周期表、化学結合',
+                description: '物質の根幹である原子の構造（同位体、電子配置）や元素の周期律、イオン結合・共有結合・金属結合の仕組みを学びます。',
+                icon: 'fa-atom',
+                color: 'sky',
+                hidden: true,
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ', 
+                keyPoints: [
+                    '<strong>原子の構造:</strong> 陽子（$+$）、中性子（電荷なし）、電子（$-$）で構成される。質量数は「陽子数 $+$ 中性子数」。',
+                    '<strong>周期表:</strong> 縦の列を「族」（同族元素は性質が類似）、横の行を「周期」と呼ぶ。',
+                    '<strong>化学結合:</strong> イオン結合（金属＋非金属）、共有結合（非金属＋非金属）、金属結合（自由電子による）の3種類を押さえよう。'
+                ],
+                files: [
+                    { name: '01_物質の構成_授業プリント.pdf', url: '#', type: 'pdf', hidden: false },
+                    { name: '01_周期表暗記チェックシート.pdf', url: '#', type: 'pdf', hidden: false },
+                    { name: '01_章末確認演習問題＆解答.pdf', url: '#', type: 'pdf', hidden: false }
+                ],
+                checklist: [
+                    '原子番号と質量数の違いを説明できる',
+                    '最外殻電子と価電子の違いがわかる',
+                    'イオン結合・共有結合・金属結合を区別できる'
+                ]
+            },
+            {
+                id: 'basic-2',
+                category: 'chem-basic',
+                categoryName: '化学基礎',
+                title: '物質量と化学反応式',
+                subTitle: 'モル mole、濃度、化学反応の計算',
+                description: '化学計算の基礎となる「物質量（モル）」の概念と、アボガドロ定数、気体の体積（$22.4\\text{ L/mol}$）、質量・濃度の変換計算をマスターします。',
+                icon: 'fa-calculator',
+                color: 'blue',
+                hidden: true,
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+                keyPoints: [
+                    '<strong>$1\\text{ mol}$ の定義:</strong> $6.02 \\times 10^{23}\\text{ 個}$ の粒子の集まり（アボガドロ定数 $N_A$）。',
+                    '<strong>モル質量:</strong> 物質 $1\\text{ mol}$ あたりの質量 [$\\text{g/mol}$]（原子量・分子量・式量に $\\text{g}$ をつけたもの）。',
+                    '<strong>気体の体積:</strong> 標準状態（$0\\,^\\circ\\text{C}$, $1.013 \\times 10^5\\text{ Pa}$）で気体 $1\\text{ mol} = 22.4\\text{ L}$。'
+                ],
+                files: [
+                    { name: '02_モル計算攻略ワークシート.pdf', url: '#', type: 'pdf', hidden: false },
+                    { name: '02_濃度計算集中トレーニング.pdf', url: '#', type: 'pdf', hidden: false },
+                    { name: '02_化学反応式と計算_演習問題.pdf', url: '#', type: 'pdf', hidden: false }
+                ],
+                checklist: [
+                    'g, L, 個数から mol への変換計算ができる',
+                    'モル濃度 [mol/L] の定義と計算ができる',
+                    '化学反応式の係数比＝物質量比であることを理解している'
+                ]
+            },
+            {
+                id: 'basic-3',
+                category: 'chem-basic',
+                categoryName: '化学基礎',
+                title: '酸と塩基の反応',
+                subTitle: 'pH、中和滴定、塩の種類',
+                description: '$\\ce{H+}$ を出す酸と $\\ce{OH-}$ を受け取る塩基の性質、$\\text{pH}$ による酸性・塩基性の指標、および中和滴定の実験手順と計算を学びます。',
+                icon: 'fa-flask text-emerald-500',
+                color: 'emerald',
+                hidden: true,
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+                keyPoints: [
+                    '<strong>酸・塩基の定義（アレニウス）:</strong> 酸は $\\ce{H+}$ を生じる物質、塩基は $\\ce{OH-}$ を生じる物質。',
+                    '<strong>$\\text{pH}$（水素イオン濃度指数）:</strong> $[\\ce{H+}] = 1.0 \\times 10^{-7}\\text{ mol/L}$ のとき $\\text{pH} = 7$（中性）。$\\text{pH} < 7$ で酸性、$\\text{pH} > 7$ で塩基性。',
+                    '<strong>中和の公式:</strong> $a \\cdot c \\cdot v = b \\cdot c\' \\cdot v\'$ （酸の価数 $\\times$ 濃度 $\\times$ 体積 $=$ 塩基の価数 $\\times$ 濃度 $\\times$ 体積）'
+                ],
+                files: [
+                    { name: '03_酸と塩基・中和滴定まとめ.pdf', url: '#', type: 'pdf', hidden: false },
+                    { name: '03_中和計算ステップアップ演習.pdf', url: '#', type: 'pdf', hidden: false }
+                ],
+                checklist: [
+                    '代表的な強酸・弱酸・強塩基・弱塩基を言える',
+                    'pHの計算（10の乗数から求める）ができる',
+                    '中和滴定の実験器具（ビュレット・ホールピペット等）の扱いを覚えている'
+                ]
+            },
+            {
+                id: 'basic-4',
+                category: 'chem-basic',
+                categoryName: '化学基礎',
+                title: '酸化還元反応',
+                subTitle: '酸化数、イオン化傾向、電池・電解',
+                description: '電子の授受による酸化・還元の定義、酸化数の決め方、金属のイオン化傾向と電池（ダニエル電池等）の仕組みを学習します。',
+                icon: 'fa-bolt text-amber-500',
+                color: 'amber',
+                hidden: true,
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+                keyPoints: [
+                    '<strong>酸化数の法則:</strong> 単体の酸化数は $0$。化合物中の $\\ce{H}$ は $+1$, $\\ce{O}$ は $-2$ が基本。',
+                    '<strong>イオン化傾向:</strong> $\\ce{K} > \\ce{Ca} > \\ce{Na} > \\ce{Mg} > \\ce{Al} > \\ce{Zn} > \\ce{Fe} > \\ce{Ni} > \\ce{Sn} > \\ce{Pb} > (\\ce{H2}) > \\ce{Cu} > \\ce{Hg} > \\ce{Ag} > \\ce{Pt} > \\ce{Au}$（貸そうかな町...）',
+                    '<strong>電池:</strong> イオン化傾向が大きい金属が「負極（酸化）」、小さい金属が「正極（還元）」となる。'
+                ],
+                files: [
+                    { name: '04_酸化還元と半反応式作成プリント.pdf', url: '#', type: 'pdf', hidden: false },
+                    { name: '04_電池・電気分解の演習問題.pdf', url: '#', type: 'pdf', hidden: false }
+                ],
+                checklist: [
+                    '化合物中の各原子の酸化数を求めることができる',
+                    '半反応式から酸化還元反応式を組み立てられる',
+                    'イオン化列を暗記しており、金属の反応性を比較できる'
+                ]
+            },
+
+            // ------------------ 【化学】 ------------------
+            {
+                id: 'adv-1',
+                category: 'chem-advanced',
+                categoryName: '化学',
+                title: '物質の状態と平衡',
+                subTitle: '気体の法則、溶液の性質、状態変化',
+                description: 'ボイル・シャルルの法則、理想気体の状態方程式（$PV=nRT$）、蒸気圧曲線、溶液の蒸気圧降下・沸点上昇・浸透圧を深く理解します。',
+                icon: 'fa-gauge-high',
+                color: 'indigo',
+                hidden: true,
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+                keyPoints: [
+                    '<strong>気体の状態方程式:</strong> $PV = nRT$ （$R = 8.31 \\times 10^3\\text{ Pa}\\cdot\\text{L}/(\\text{K}\\cdot\\text{mol})$）',
+                    '<strong>ドルトンの分圧の法則:</strong> 全圧 $P = P_A + P_B$、分圧 $P_A = P \\times (\\text{モル分率})$',
+                    '<strong>沸点上昇・凝固点降下:</strong> \\Delta T = K \\cdot m$ （質量モル濃度 $m$ に比例）'
+                ],
+                files: [
+                    { name: '01_気体の状態方程式演習.pdf', url: '#', type: 'pdf', hidden: false },
+                    { name: '01_蒸気圧と状態変化の解法演習.pdf', url: '#', type: 'pdf', hidden: false }
+                ],
+                checklist: [
+                    '状態方程式を用いて気体の分子量を算出できる',
+                    '飽和蒸気圧と液化の条件をグラフから読み取れる',
+                    '浸透圧（ファントホッフの法則）の計算ができる'
+                ]
+            },
+            {
+                id: 'adv-2',
+                category: 'chem-advanced',
+                categoryName: '化学',
+                title: '物質の変化と平衡',
+                subTitle: '化学反応と熱、反応速度、化学平衡',
+                description: '熱化学方程式・反応熱（エンタルピー変化）、反応速度式、ルシャトリエの原理に基づく化学平衡の移動を学びます。',
+                icon: 'fa-fire-flame-curved',
+                color: 'rose',
+                hidden: true,
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+                keyPoints: [
+                    '<strong>ヘスの法則:</strong> 反応熱は、反応の経路によらず、反応前後の物質の状態だけで決まる。',
+                    '<strong>ルシャトリエの原理:</strong> 平衡状態にある系に変化を加えると、その変化を和らげる向きに平衡が移動する。',
+                    '<strong>濃度平衡定数 $K$:</strong> $a\\ce{A} + b\\ce{B} \\rightleftharpoons c\\ce{C} + d\\ce{D}$ のとき $K = \\frac{[\\ce{C}]^c [\\ce{D}]^d}{[\\ce{A}]^a [\\ce{B}]^b}$'
+                ],
+                files: [
+                    { name: '02_ヘスの法則・熱化学計算.pdf', url: '#', type: 'pdf', hidden: false },
+                    { name: '02_化学平衡の移動演習.pdf', url: '#', type: 'pdf', hidden: false }
+                ],
+                checklist: [
+                    '結合エネルギーや生成熱から反応熱を求められる',
+                    '温度・圧力・濃度変化に伴う平衡移動の向きを判断できる'
+                ]
+            },
+            {
+                id: 'adv-3',
+                category: 'chem-advanced',
+                categoryName: '化学',
+                title: '無機物質',
+                subTitle: '非金属元素、典型金属、遷移金属',
+                description: 'ハロゲン、酸素・硫黄、窒素・リンなどの非金属や、アルカリ金属、アルミ、鉄、銅などの金属元素の単体・化合物の性質と呈色反応を暗記・整理します。',
+                icon: 'fa-cube text-teal-600',
+                color: 'teal',
+                hidden: true,
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+                keyPoints: [
+                    '<strong>気体の発生法:</strong> 発生器具、乾燥剤（酸性・塩基性・中性）、集気法（水上・向上・下方置換）をセットで覚える。',
+                    '<strong>沈殿反応:</strong> $\\ce{Ag+}$（$\\ce{Cl-}$ で白色）、$\\ce{Ba^{2+}}$（$\\ce{SO4^{2-}}$ で白色）、$\\ce{Cu^{2+}}$（$\\ce{S^{2-}}$ で黒色）などを徹底網羅。',
+                    '<strong>錯イオン:</strong> アンモニア水や水酸化ナトリウム過剰で溶ける金属イオン（$\\ce{Zn^{2+}}, \\ce{Al^{3+}}, \\ce{Sn^{2+}}, \\ce{Pb^{2+}}, \\ce{Cu^{2+}}, \\ce{Ag+}$）'
+                ],
+                files: [
+                    { name: '03_無機化学_金属沈殿反応一覧表.pdf', url: '#', type: 'pdf', hidden: false },
+                    { name: '03_気体の発生と性質まとめ.pdf', url: '#', type: 'pdf', hidden: false }
+                ],
+                checklist: [
+                    '主要な気体の発生反応式（濃硝酸、希硝酸、接触法等）が書ける',
+                    '金属イオンの分離操作フローチャートを解くことができる'
+                ]
+            },
+            {
+                id: 'adv-4',
+                category: 'chem-advanced',
+                categoryName: '化学',
+                title: '有機化合物',
+                subTitle: '脂肪族炭化水素、官能基、芳香族化合物',
+                description: 'アルカン・アルケン・アルキン、アルコール、カルボン酸・エステル、ベンゼン環を持つ芳香族化合物の構造決定と異性体を学習します。',
+                icon: 'fa-dna text-purple-600',
+                color: 'purple',
+                hidden: true,
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+                keyPoints: [
+                    '<strong>官能基:</strong> $-\\ce{OH}$（ヒドロキシ基）、$-\\ce{CHO}$（ホルミル基/銀鏡反応を示す）、$-\\ce{COOH}$（カルボキシ基）、$-\\ce{COO}-$（エステル結合）。',
+                    '<strong>構造異性体・シス/トランス異性体・鏡像異性体:</strong> 不飽和度や不斉炭素原子の有無に着目する。',
+                    '<strong>芳香族の反応:</strong> ニトロ化、スルホン化、カルボン酸の副生成、フェノールの呈色（$\\ce{FeCl3}$ で紫）。'
+                ],
+                files: [
+                    { name: '04_有機化学_官能基と構造決定フロー.pdf', url: '#', type: 'pdf', hidden: false },
+                    { name: '04_構造決定特訓演習問題集.pdf', url: '#', type: 'pdf', hidden: false }
+                ],
+                checklist: [
+                    '分子式から異性体を漏れなく書き出すことができる',
+                    '銀鏡反応・フェーリング反応陽性の官能基（アルデヒド基）を理解している',
+                    'エステル化と加水分解の反応式が書ける'
+                ]
+            },
+            {
+                id: 'adv-5',
+                category: 'chem-advanced',
+                categoryName: '化学',
+                title: '高分子化合物',
+                subTitle: '天然高分子（糖・タンパク質）、合成高分子',
+                description: 'デンプンやセルロースなどの多糖類、アミノ酸とタンパク質、DNA/RNA、合成樹脂（ポリエチレン、ナイロン、PET等）の構造と重合反応をマスターします。',
+                icon: 'fa-link',
+                color: 'cyan',
+                hidden: true,
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+                keyPoints: [
+                    '<strong>単糖・二糖・多糖:</strong> グルコース（$\\alpha/\\beta$ 型）、マルトース、スクロース（非還元性！）、デンプン。',
+                    '<strong>タンパク質:</strong> アミノ酸がペプチド結合で重合。検出反応（ビウレット反応、キサントプロテイン反応）。',
+                    '<strong>合成高分子:</strong> 付加重合（ポリエチレン等）、縮合重合（ナイロン66、PET等）。'
+                ],
+                files: [
+                    { name: '05_高分子化合物_構造分類シート.pdf', url: '#', type: 'pdf', hidden: false },
+                    { name: '05_アミノ酸・タンパク質計算演習.pdf', url: '#', type: 'pdf', hidden: false }
+                ],
+                checklist: [
+                    '単糖類の構造式と還元性の有無を覚えている',
+                    'アミノ酸の等電点と電気泳動の原理を説明できる',
+                    '付加重合と縮合重合の違いがわかる'
+                ]
+            }
+        ];
+
+        /*
+        --------------------------------------------------------------------------
+        ★2. 【大学入試演習プリント】★
+        以下の EXAM_PRINTS_DATA 内に新しいプリント情報を追加してください。
+        --------------------------------------------------------------------------
+        */
+        const EXAM_PRINTS_DATA = [
+            {
+                id: 'exam-1',
+                tag: '共通テスト',
+                title: '共通テスト対策 思考力問題演習（理論・無機）',
+                description: 'グラフの読み取りや実験データの解析を中心とした共通テスト形式の試行問題＆解説セットです。',
+                url: '#',
+                hidden: true
+            },
+            {
+                id: 'exam-2',
+                tag: '総合演習',
+                title: '有機化学 構造決定ハイレベル演習',
+                description: '難関大入試で頻出の芳香族化合物・高分子化合物の構造決定パズル問題を厳選解説。',
+                url: '#',
+                hidden: true
+            }
+        ];
+
+        /*
+        --------------------------------------------------------------------------
+        ★3. 【実験ライブラリデータ】★
+        実習や動画資料、レポート用紙の追加変更はここで行います。
+        --------------------------------------------------------------------------
+        */
+        const EXPERIMENTS_DATA = [
+            {
+                id: 'exp-1',
+                category: '化学基礎',
+                title: '中和滴定と濃度決定',
+                description: 'ホールピペットやビュレットの共洗いの手順と、指示薬（フェノールフタレイン）の色の変化を観察して食酢中の酢酸濃度を求めます。',
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+                safetyNote: '酸・塩基を扱うため保護メガネを着用すること。',
+                sheetName: '中和滴定_実験レポート用紙.pdf',
+                sheetUrl: '#',
+                hidden: true
+            },
+            {
+                id: 'exp-2',
+                category: '化学',
+                title: '銀鏡反応とフェーリング反応',
+                description: 'アルデヒドの還元性を確認する定性実験。試験管壁に美しい銀の鏡を析出させる条件や加熱時の注意点を学びます。',
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+                safetyNote: 'アンモニア性硝酸銀水溶液は放置すると爆発性の錯塩を作るため即時廃棄すること。',
+                sheetName: '銀鏡反応_ワークシート.pdf',
+                sheetUrl: '#',
+                hidden: true
+            },
+            {
+                id: 'exp-3',
+                category: '化学',
+                title: '金属イオンの沈殿分離',
+                description: '陽イオン（Ag⁺, Cu²⁺, Fe³⁺, Al³⁺等）が含まれる混合水溶液から、分液操作と液性（酸性・塩基性）の調整によって系統分離します。',
+                videoUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+                safetyNote: '硫化水素ガス（H₂S）を使用・発生させるため、ドラフト内で実験を行うこと。',
+                sheetName: '陽イオン系統分離_フローチャート演習.pdf',
+                sheetUrl: '#',
+                hidden: true
+            }
+        ];
+
+        /*
+        --------------------------------------------------------------------------
+        ★4. 【基礎特訓 Webアプリデータ】★
+        作成したWebアプリ（HTMLファイルや外部サイト）のリンクをここに追加します。
+        --------------------------------------------------------------------------
+        */
+        const DRILLS_DATA = [
+            {
+                id: 'drill-1',
+                category: '化学基礎',
+                unitName: '物質量',
+                title: 'モル計算・濃度計算ドリル',
+                description: 'モル計算・濃度計算の特訓',
+                icon: 'fa-calculator',
+                url: 'quiz/mol-practice.html',
+                badge: '計算特訓',
+                hidden: false
+            },
+            {
+                id: 'drill-100',
+                category: '化学基礎',
+                unitName: '物質の構成',
+                title: '元素記号・周期表タイムアタック',
+                description: '元素記号や周期表の位置を素早く答えて暗記するゲーム型アプリ。',
+                icon: 'fa-gamepad',
+                url: 'element_quiz.html',
+                badge: 'ゲーム',
+                hidden: true
+            },
+            {
+                id: 'drill-2',
+                category: '化学基礎',
+                unitName: '物質量と化学反応式',
+                title: 'モル(mol)計算 100本ノック',
+                description: 'g ⇄ mol ⇄ L ⇄ 個数の相互変換計算をランダム出題で徹底特訓！',
+                icon: 'fa-calculator',
+                url: 'mol_calc_app.html',
+                badge: '計算特訓',
+                hidden: true
+            },
+            {
+                id: 'drill-3',
+                category: '化学',
+                unitName: '有機化合物',
+                title: '官能基・構造決定パズル',
+                description: '反応や呈色実験から構造を推理するインタラクティブ学習アプリ。',
+                icon: 'fa-brain',
+                url: 'organic_puzzle.html',
+                badge: '一問一答',
+                hidden: true
+            }
+        ];
+    </script>
+</body>
+</html>

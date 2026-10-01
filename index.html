@@ -232,16 +232,31 @@
                 <button id="ex-subtab-all" onclick="switchExerciseSubTab('all')" class="ex-subtab-btn active px-4 py-2 rounded-xl text-xs font-bold transition-all bg-amber-500 text-white shadow-sm">
                     <i class="fa-solid fa-layer-group mr-1.5"></i> すべて表示
                 </button>
-                <button id="ex-subtab-exam" onclick="switchExerciseSubTab('exam')" class="ex-subtab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200">
-                    <i class="fa-solid fa-graduation-cap mr-1.5 text-indigo-600"></i> 大学入試演習
-                </button>
                 <button id="ex-subtab-unit" onclick="switchExerciseSubTab('unit')" class="ex-subtab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200">
                     <i class="fa-solid fa-folder-open mr-1.5 text-amber-500"></i> 単元別演習問題集
+                </button>
+                <button id="ex-subtab-exam" onclick="switchExerciseSubTab('exam')" class="ex-subtab-btn px-4 py-2 rounded-xl text-xs font-bold transition-all bg-slate-100 text-slate-600 hover:bg-slate-200">
+                    <i class="fa-solid fa-graduation-cap mr-1.5 text-indigo-600"></i> 大学入試演習
                 </button>
             </div>
 
             <div class="space-y-8">
-                <!-- 1. 大学入試演習 -->
+
+                <!-- 1. 分野別演習問題集・解答アーカイブ -->
+                <div id="ex-section-unit" class="subcontent-panel">
+                    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+                        <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                            <i class="fa-solid fa-folder-open text-amber-500 mr-2 text-xl"></i> 単元別演習問題集・解答アーカイブ
+                        </h3>
+                        <p class="text-xs text-slate-500 mb-6">定期試験対策や計算集中トレーニング用の演習プリント（PDF）です。各自でダウンロード・印刷して学習してください。</p>
+
+                        <div id="exercisePrintsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- 動的生成されるプリント一覧カード -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. 大学入試演習 -->
                 <div id="ex-section-exam" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-lg font-bold text-slate-800 flex items-center">
@@ -256,19 +271,7 @@
                     </div>
                 </div>
 
-                <!-- 2. 分野別演習問題集・解答アーカイブ -->
-                <div id="ex-section-unit" class="subcontent-panel">
-                    <div class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-                        <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center">
-                            <i class="fa-solid fa-folder-open text-amber-500 mr-2 text-xl"></i> 単元別演習問題集・解答アーカイブ
-                        </h3>
-                        <p class="text-xs text-slate-500 mb-6">定期試験対策や計算集中トレーニング用の演習プリント（PDF）です。各自でダウンロード・印刷して学習してください。</p>
-
-                        <div id="exercisePrintsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- 動的生成されるプリント一覧カード -->
-                        </div>
-                    </div>
-                </div>
+                
             </div>
         </section>
 

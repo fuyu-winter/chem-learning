@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>環状構造から鎖状構造へ</title>
+<style>
+:root{--bg:#fff;--ink:#1d1d1f;--muted:#6b7280;--red:#d62828;--blue:#1d6fd6;--accent:#0a8a5a;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1b1d;--ink:#ececec;--muted:#9aa0a6;--red:#ff6b6b;--blue:#6cb2ff;--accent:#3ddc97;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1b1b1d;--ink:#ececec;--muted:#9aa0a6;--red:#ff6b6b;--blue:#6cb2ff;--accent:#3ddc97;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;padding:16px;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
+h1{font-size:18px;margin:0 0 4px}
+p.sub{margin:0 0 10px;color:var(--muted);font-size:13px}
+.wrap{max-width:900px;margin:0 auto}
+.scroll{overflow-x:auto}
+svg{width:100%;min-width:560px;height:auto;display:block}
+svg text{font-size:15px;text-anchor:middle;dominant-baseline:central;paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round}
+#cap{min-height:44px;margin:8px 0;font-size:15px;font-weight:600}
+.ctl,.tabs{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+button{font:inherit;padding:6px 14px;border:1px solid var(--muted);border-radius:8px;background:none;color:var(--ink);cursor:pointer}
+button.on{border-color:var(--accent);color:var(--accent);font-weight:700}
+input[type=range]{flex:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>環状構造から鎖状構造への変化（開環）</h1>
+<p class="sub">環状はハース投影式、鎖状はフィッシャー投影式で表示。丸数字は炭素の番号です。フルクトースは鎖状になったあと、還元性を示すしくみまで続きます。</p>
+<div class="tabs"><button id="tg" class="on">α-グルコース</button><button id="tf">β-フルクトース</button></div>
+<div class="scroll"><svg id="s" viewBox="0 0 780 360" role="img" aria-label="開環のアニメーション"></svg></div>
+<div id="cap"></div>
+<div class="ctl"><button id="b">⏸ 一時停止</button><button id="r">↺ 最初から</button><input id="k" type="range" min="0" max="1000" value="0" aria-label="進行度"></div>
+</div>
+<script>
+/* 原子: [環x,環y,鎖x,鎖y] */
+const S={
+g:{n:['α-D-グルコース（六員環）','鎖状グルコース（アルデヒド型）'],an:'C1',ao:'O1',ro:'Or',lab:'ホルミル基（−CHO）',m:1,dop:t=>seg(t,.3,.45),H:[['C1',-28,-3,t=>seg(t,.75,.9)]],
+ at:{C1:[55,0,0,-105],C2:[25,30,0,-63],C3:[-25,30,0,-21],C4:[-55,0,0,21],C5:[-25,-30,0,63],C6:[-25,-64,0,105],Or:[25,-30,40,63],O1:[55,34,38,-105],O2:[25,64,40,-63],O3:[-25,-4,-40,-21],O4:[-55,34,40,21],O6:[-25,-98,0,147]},
+ b:[['C1','C2'],['C2','C3','t'],['C3','C4'],['C4','C5'],['C5','Or'],['Or','C1','x'],['C5','C6'],['C6','O6'],['C1','O1','d'],['C2','O2'],['C3','O3'],['C4','O4']],
+ c:['環状構造：C1に、環のOと−OH（ヘミアセタール性のOH）がついている','−OHのH（青）が環のOへ移り、C1–O（環）の結合が切れる（赤の破線）','C1=Oができ、環が開いて炭素鎖がまっすぐに伸びていく','鎖状構造：C1が、=OとHをもつホルミル基（−CHO、アルデヒド基）になる。再び閉環すると、α型・β型どちらもできる']},
+f:{n:['β-D-フルクトース（五員環）','鎖状フルクトース（ケトン型）'],an:'C2',ao:'O2',ro:'Or',lab:'ケトン基（C=O）',m:2,dop:t=>seg(t,.3,.45)*(1-seg(t,1.35,1.5)),H:[['C1',-28,-3,t=>seg(t,1,1.06)]],c2:['ケトン基の隣のC1にOHがある（−CO−CH₂OH）。この「α-ヒドロキシケトン構造」が還元性のもと','塩基性水溶液中で、C1のH（青）がO2へ移る','C1=C2をもつエンジオール中間体になる','O1のHがC2へ移る','C1が−CHO（ホルミル基）になる。ホルミル基は酸化されやすいため、フルクトースも還元性（銀鏡反応・フェーリング液の還元）を示す'],
+ at:{C1:[53,18,0,-105],O1:[53,52,0,-147],C2:[43,-14,0,-63],O2:[53,-46,40,-63],C3:[27,36,0,-21],O3:[27,2,-40,-21],C4:[-27,36,0,21],O4:[-27,70,40,21],C5:[-43,-14,0,63],Or:[0,-45,40,63],C6:[-53,-48,0,105],O6:[-53,-82,0,147]},
+ b:[['C2','C3'],['C3','C4','t'],['C4','C5'],['C5','Or'],['Or','C2','x'],['C2','C1'],['C1','O1'],['C2','O2','d'],['C3','O3'],['C4','O4'],['C5','C6'],['C6','O6'],['C2','C1','e1'],['C1','O1','e2']],
+ c:['環状構造：C2に、環のOと−OH（ヘミケタール性のOH）がついている','−OHのH（青）が環のOへ移り、C2–O（環）の結合が切れる（赤の破線）','C2=Oができ、環が開いて炭素鎖がまっすぐに伸びていく','鎖状構造：C2がケトン基（C=O）になる。再び閉環すると、α型・β型どちらもできる']}};
+const cl=v=>Math.max(0,Math.min(1,v)),seg=(q,a,b)=>cl((q-a)/(b-a)),ease=t=>t*t*(3-2*t),lerp=(a,b,t)=>a+(b-a)*t;
+const T=(x,y,s,f='var(--ink)',o=1,x2='')=>`<text x="${x}" y="${y}" fill="${f}" opacity="${o}" ${x2}>${s}</text>`;
+let cur='g',p=0,playing=true,last=0;
+const svg=document.getElementById('s'),cap=document.getElementById('cap'),bt=document.getElementById('b'),sl=document.getElementById('k');
+function render(){
+  const s=S[cur],t=p,u=ease(seg(t,.4,.85)),X=390,Y=185;
+  const pos=id=>{const a=s.at[id];return [X+lerp(a[0],a[2],u),Y+lerp(a[1],a[3],u)]};
+  const red=t>=.12;let h='';
+  s.b.forEach(([a,b,k])=>{
+    let A=pos(a),B=pos(b);const dx=B[0]-A[0],dy=B[1]-A[1],L=Math.hypot(dx,dy)||1,nx=dx/L,ny=dy/L;
+    const sa=a[0]=='O'?11:0,sb=b[0]=='O'?11:0;
+    A=[A[0]+nx*sa,A[1]+ny*sa];B=[B[0]-nx*sb,B[1]-ny*sb];
+    let col='var(--ink)',w=1.8,op=1,dash='';
+    if(k=='t')w=lerp(5,1.8,ease(seg(t,.4,.7)));
+    if(k=='x'){op=1-seg(t,.3,.4);if(red){col='var(--red)';dash='stroke-dasharray="4 3"'}if(op<=0)return}
+    if(k=='d'&&t>.3){col='var(--ink)'}
+    const l=(o2,o)=>`<line x1="${A[0]+o2*-ny}" y1="${A[1]+o2*nx}" x2="${B[0]+o2*-ny}" y2="${B[1]+o2*nx}" stroke="${col}" stroke-width="${w}" stroke-linecap="round" opacity="${o}" ${dash}/>`;
+    if(k=='e1'||k=='e2'){col='var(--accent)';h+=l(4,k=='e1'?seg(t,1.35,1.5)*(1-seg(t,1.8,1.9)):seg(t,1.8,1.9));return}
+    h+=l(0,op);
+    if(k=='d')h+=l(4,s.dop(t));
+  });
+  Object.keys(s.at).forEach(id=>{
+    const P=pos(id);
+    if(id[0]=='C'){const an=id==s.an;h+=`<circle cx="${P[0]}" cy="${P[1]}" r="9" fill="var(--bg)" stroke="${an?'var(--accent)':'var(--muted)'}" stroke-width="${an?2:1}"/>`+T(P[0],P[1],id[1],an?'var(--accent)':'var(--muted)',1,'style="font-size:11px;stroke:none"');}
+    else{
+      let tx,f='var(--ink)';
+      if(cur=='f'&&id=='O1'&&t>=1){h+=T(P[0]-6,P[1],'O');return}
+      if(id==s.ao){tx='O';if(red&&t<1)f='var(--red)'}else if(id=='Or'){tx='O'}else tx=P[0]<X-6?'HO':'OH';
+      h+=T(P[0],P[1],tx,f);
+    }
+  });
+  (s.H||[]).forEach(([par,dx,dy,fo])=>{const o=fo(t);if(o<=0)return;const P=pos(par),Q=[P[0]+dx,P[1]+dy];h+=`<line x1="${P[0]+dx*.3}" y1="${P[1]+dy*.3}" x2="${P[0]+dx*.65}" y2="${P[1]+dy*.65}" stroke="var(--ink)" stroke-width="1.8" opacity="${o}"/>`+T(Q[0],Q[1],'H','var(--ink)',o)});
+  if(cur=='f'&&t>=1){
+    const C1=pos('C1'),O1=pos('O1'),C2=pos('C2'),O2=pos('O2'),f0=seg(t,1,1.06);
+    const k1=ease(seg(t,1.15,1.45)),a1=[C1[0]+28,C1[1]-3],b1=[O2[0]+13,O2[1]+8];
+    h+=`<line x1="${C1[0]+9}" y1="${C1[1]-1}" x2="${a1[0]-8}" y2="${a1[1]}" stroke="var(--ink)" stroke-width="1.8" opacity="${f0*(1-seg(t,1.15,1.25))}"/>`;
+    h+=T(lerp(a1[0],b1[0],k1),lerp(a1[1],b1[1],k1)-10*Math.sin(Math.PI*k1),'H',t>1.1?'var(--blue)':'var(--ink)',f0,'style="font-weight:700"');
+    const k2=ease(seg(t,1.65,1.9)),a2=[O1[0]+7,O1[1]],b2=[C2[0]-27,C2[1]+3];
+    h+=T(lerp(a2[0],b2[0],k2)-22*Math.sin(Math.PI*k2),lerp(a2[1],b2[1],k2),'H',t>1.6?'var(--blue)':'var(--ink)',1,'style="font-weight:700"');
+    h+=`<rect x="${X-34}" y="${Y-166}" width="110" height="126" rx="10" fill="none" stroke="var(--accent)" stroke-dasharray="5 4" opacity="${f0*(1-seg(t,1.5,1.55))}"/>`;
+    const L=t<1.15?'α-ヒドロキシケトン構造（−CO−CH₂OH）':t<1.5?'C1のHがO2へ移動':t<1.65?'エンジオール（C1=C2）':t<1.9?'O1のHがC2へ移動':'ホルミル基（−CHO）';
+    h+=T(X+95,Y-105,L,'var(--accent)',f0,'style="text-anchor:start;font-weight:700;font-size:14px"');
+  }
+  const pa=pos(s.ao),pr=pos(s.ro),k=ease(seg(t,.12,.4));
+  h+=T(lerp(pa[0]+13,pr[0]+13,k),lerp(pa[1]+8,pr[1]-8,k)-16*Math.sin(Math.PI*k),'H',t>.1?'var(--blue)':'var(--ink)',1,'style="font-weight:700"');
+  h+=T(pos(s.ao)[0]+30,pos(s.ao)[1],s.lab,'var(--accent)',seg(t,.88,1)*(1-seg(t,1.05,1.15)),'style="text-anchor:start;font-weight:700;font-size:14px"');
+  h+=T(X,26,s.n[0],'var(--ink)',1-seg(t,.45,.6),'style="font-weight:700;font-size:17px"')+T(X,26,s.n[1],'var(--ink)',seg(t,.55,.7),'style="font-weight:700;font-size:17px"');
+  svg.innerHTML=h;
+  cap.textContent=t>=1?s.c2[t<1.15?0:t<1.5?1:t<1.65?2:t<1.9?3:4]:(t<.12?s.c[0]:t<.4?s.c[1]:t<.85?s.c[2]:s.c[3]);
+}
+function tick(ts){
+  if(playing){const m=S[cur].m;p=Math.min(m,p+(ts-last)/9000);sl.value=p/m*1000;if(p>=m){playing=false;bt.textContent='▶ 再生'}}
+  last=ts;render();requestAnimationFrame(tick);
+}
+function pick(c){cur=c;p=0;playing=true;bt.textContent='⏸ 一時停止';document.getElementById('tg').className=c=='g'?'on':'';document.getElementById('tf').className=c=='f'?'on':''}
+document.getElementById('tg').onclick=()=>pick('g');document.getElementById('tf').onclick=()=>pick('f');
+bt.onclick=()=>{if(p>=S[cur].m)p=0;playing=!playing;bt.textContent=playing?'⏸ 一時停止':'▶ 再生'};
+document.getElementById('r').onclick=()=>pick(cur);
+sl.oninput=()=>{p=sl.value/1000*S[cur].m;playing=false;bt.textContent='▶ 再生'};
+requestAnimationFrame(ts=>{last=ts;tick(ts)});
+</script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>β-グルコースの縮合とセルロース</title>
+<style>
+:root{--bg:#fff;--ink:#1d1d1f;--muted:#6b7280;--red:#d62828;--blue:#1d6fd6;--accent:#0a8a5a;--water:#0b7bb5;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1b1d;--ink:#ececec;--muted:#9aa0a6;--red:#ff6b6b;--blue:#6cb2ff;--accent:#3ddc97;--water:#5ec8ff;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1b1b1d;--ink:#ececec;--muted:#9aa0a6;--red:#ff6b6b;--blue:#6cb2ff;--accent:#3ddc97;--water:#5ec8ff;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;padding:16px;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
+h1{font-size:18px;margin:0 0 4px}
+p.sub{margin:0 0 10px;color:var(--muted);font-size:13px}
+.wrap{max-width:900px;margin:0 auto}
+.scroll{overflow-x:auto}
+svg{width:100%;min-width:620px;height:auto;display:block}
+svg text{font-size:15px;text-anchor:middle;dominant-baseline:central;paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round}
+#cap{min-height:24px;margin:8px 0;font-size:15px;font-weight:600}
+.ctl{display:flex;gap:8px;align-items:center}
+button{font:inherit;padding:6px 14px;border:1px solid var(--muted);border-radius:8px;background:none;color:var(--ink);cursor:pointer}
+input[type=range]{flex:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>β-グルコースの脱水縮合によるセルロースの生成</h1>
+<p class="sub">ハース投影式（斜め上から見た環構造）。太線が手前側。隣り合う単位は互いに上下反転して結合します。</p>
+<div class="scroll"><svg id="s" viewBox="0 0 780 360" role="img" aria-label="β-グルコースの縮合アニメーション"></svg></div>
+<div id="cap"></div>
+<div class="ctl"><button id="b">⏸ 一時停止</button><button id="r">↺ 最初から</button><input id="k" type="range" min="0" max="2000" value="0" aria-label="進行度"></div>
+</div>
+<script>
+const P={C5:[-25,-30],O:[25,-30],C1:[55,0],C2:[25,30],C3:[-25,30],C4:[-55,0]};
+const cl=(v)=>Math.max(0,Math.min(1,v)),seg=(q,a,b)=>cl((q-a)/(b-a)),ease=t=>t*t*(3-2*t),lerp=(a,b,t)=>a+(b-a)*t;
+const T=(x,y,s,f='var(--ink)',o=1,x2='')=>`<text x="${x}" y="${y}" fill="${f}" opacity="${o}" ${x2}>${s}</text>`;
+const ln=(a,b,c,w=1.8)=>`<line x1="${a[0]}" y1="${a[1]}" x2="${b[0]}" y2="${b[1]}" stroke="${c}" stroke-width="${w}" stroke-linecap="round"/>`;
+function U(x,y,s,skip){
+  const pt=k=>[x+P[k][0],y+P[k][1]*s];
+  let h=`<polygon points="${['C1','C2','C3','C4','C5','O'].map(k=>pt(k)).join(' ')}" fill="none" stroke="var(--ink)" stroke-width="1.6" stroke-linejoin="round"/>`;
+  h+=ln(pt(s>0?'C2':'C5'),pt(s>0?'C3':'O'),'var(--ink)',5);
+  const o=pt('O');h+=`<circle cx="${o[0]}" cy="${o[1]}" r="9" fill="var(--bg)"/>`+T(o[0],o[1],'O');
+  [['C2',1,'OH'],['C3',-1,'HO'],['C4',1,'HO'],['C1',-1,'OH'],['C5',-1,'CH₂OH']].forEach(([k,u,t])=>{
+    if(skip[k.toLowerCase()])return;const c=pt(k),dy=u*s;
+    h+=ln(c,[c[0],c[1]+dy*24],'var(--ink)')+T(c[0],c[1]+dy*34,t);
+  });
+  h+=T(x+43,y+5,'1','var(--muted)',1,'style="font-size:10px"')+T(x-43,y+5,'4','var(--muted)',1,'style="font-size:10px"');
+  return h;
+}
+const D=(q,far)=>q<.45?lerp(far,214,ease(seg(q,0,.25))):lerp(214,170,ease(seg(q,.45,.75)));
+function link(Lx,Rx,cy,sL,sR,q0){const d=-sL,q=seg(q0,.3,1);
+  const c1=[Lx+55,cy],c4=[Rx-55,cy],r=ease(seg(q,.45,.75)),hl=q>.2,vx=30,vyL=-18*sL,vyR=18*sR;
+  /* C1–O・C4–O の結合方向と長さは結合前後で固定（∠C–O–C≈118°） */
+  const e1=[c1[0]+vx,cy+vyL],e4=[c4[0]-vx,cy+vyR],M=[(c1[0]+c4[0])/2,cy+vyL];
+  const col=r>0?'var(--accent)':'var(--ink)',fo=1-seg(q,.45,.6);
+  let h='';
+  if(q>.2&&q<.45)h+=`<ellipse cx="${(e1[0]+e4[0])/2}" cy="${(e1[1]+e4[1])/2+d*4}" rx="${(e4[0]-e1[0])/2+34}" ry="17" fill="none" stroke="var(--accent)" stroke-dasharray="4 4" opacity="${seg(q,.2,.28)*(1-seg(q,.4,.45))}"/>`;
+  h+=ln(c1,e1,col,r>0?2.6:1.8)+ln(c4,e4,col,r>0?2.6:1.8);
+  if(fo>0)h+=T(e1[0],e1[1],'O',hl?'var(--red)':'var(--ink)',fo)+T(e1[0]+13,e1[1]+d*8,'H',hl?'var(--red)':'var(--ink)',fo)+T(e4[0]-13,e4[1]+sR*8,'H',hl?'var(--blue)':'var(--ink)',fo);
+  h+=T(e4[0],e4[1],'O',r>0?'var(--accent)':'var(--ink)');
+  const wo=seg(q,.5,.6)*(1-seg(q,.85,1));
+  if(wo>0)h+=T(e1[0]+8,e1[1]+d*(24+50*ease(seg(q,.6,1))),'H₂O','var(--water)',wo,'style="font-weight:700;font-size:17px"');
+  h+=T(M[0],cy+105,'β-1,4-グリコシド結合','var(--accent)',seg(q,.9,1),'style="font-size:13px"')+T(M[0],cy+122,'∠C–O–C ≈ 118°','var(--muted)',seg(q,.9,1),'style="font-size:12px"');
+  return h;
+}
+let p=0,playing=true,last=0;
+const svg=document.getElementById('s'),cap=document.getElementById('cap'),bt=document.getElementById('b'),sl=document.getElementById('k');
+function render(){
+  const q1=seg(p,0,1),q2=seg(p,1,2),cy=170,Ax=100;
+  const sB=Math.cos(Math.PI*ease(seg(q1,0,.3))),sC=-Math.cos(Math.PI*ease(seg(q2,0,.3))),co=seg(q2,0,.05);
+  const Bx=Ax+D(seg(q1,.3,1),300),Cx=p<1?670:Bx+D(seg(q2,.3,1),400);
+  let h=U(Ax,cy,1,{c1:1})+U(Bx,cy,sB,{c1:1,c4:1})+link(Ax,Bx,cy,1,sB,q1)+`<g opacity="${co}">`+U(Cx,cy,sC,{c4:1})+link(Bx,Cx,cy,sB,sC,q2)+'</g>';
+  const fb=(x,t,o2)=>T(x,62,'↻ 180°反転','var(--accent)',Math.sin(Math.PI*seg(t,0,.3))*o2,'style="font-weight:700"');
+  h+=fb(Bx,q1,1)+fb(Cx,q2,co);
+  const lb=(x,o)=>T(x,cy+128,'β-グルコース','var(--muted)',o,'style="font-size:13px"');
+  h+=lb(Ax,1-seg(q1,.75,1))+lb(Bx,1-seg(q1,.75,1))+lb(Cx,(1-seg(q2,.75,1))*co);
+  h+=T(390,340,'セルロース：β-グルコースがβ-1,4結合で連なる（隣り合う単位は180°反転）','var(--ink)',seg(p,1.9,2),'style="font-weight:700"');
+  svg.innerHTML=h;
+  const q=p<1?q1:q2,n=p<1?'① ':'② ';
+  cap.textContent=p>=2?'繰り返すと、長い直鎖状のセルロースになります（n個のグルコース単位）':n+(q<.3?'結合の前に、右側のβ-グルコースを180°反転（上下をひっくり返す）':q<.475?'反転したβ-グルコースが近づく':q<.615?'C1の−OH（赤）とC4の−OHのH（青）が向かい合う':q<.825?'H₂Oが脱離する（脱水縮合）':'C1とC4が −O− でつながる：β-1,4-グリコシド結合');
+}
+function tick(t){
+  if(playing){p=Math.min(2,p+(t-last)/8000);sl.value=p*1000;if(p>=2){playing=false;bt.textContent='▶ 再生'}}
+  last=t;render();requestAnimationFrame(tick);
+}
+bt.onclick=()=>{if(p>=2)p=0;playing=!playing;bt.textContent=playing?'⏸ 一時停止':'▶ 再生'};
+document.getElementById('r').onclick=()=>{p=0;playing=true;bt.textContent='⏸ 一時停止'};
+sl.oninput=()=>{p=sl.value/1000;playing=false;bt.textContent='▶ 再生'};
+requestAnimationFrame(t=>{last=t;tick(t)});
+</script>
+</body>
+</html>

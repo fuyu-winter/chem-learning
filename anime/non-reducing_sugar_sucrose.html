@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>スクロースの生成と非還元性</title>
+<style>
+:root{--bg:#fff;--ink:#1d1d1f;--muted:#6b7280;--red:#d62828;--blue:#1d6fd6;--accent:#0a8a5a;--water:#0b7bb5;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1b1b1d;--ink:#ececec;--muted:#9aa0a6;--red:#ff6b6b;--blue:#6cb2ff;--accent:#3ddc97;--water:#5ec8ff;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1b1b1d;--ink:#ececec;--muted:#9aa0a6;--red:#ff6b6b;--blue:#6cb2ff;--accent:#3ddc97;--water:#5ec8ff;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;padding:16px;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Hiragino Sans","Noto Sans JP",sans-serif}
+h1{font-size:18px;margin:0 0 4px}
+p.sub{margin:0 0 10px;color:var(--muted);font-size:13px}
+.wrap{max-width:900px;margin:0 auto}
+.scroll{overflow-x:auto}
+svg{width:100%;min-width:620px;height:auto;display:block}
+svg text{font-size:15px;text-anchor:middle;dominant-baseline:central;paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round}
+#cap{min-height:44px;margin:8px 0;font-size:15px;font-weight:600}
+.ctl{display:flex;gap:8px;align-items:center}
+button{font:inherit;padding:6px 14px;border:1px solid var(--muted);border-radius:8px;background:none;color:var(--ink);cursor:pointer}
+input[type=range]{flex:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>スクロースの生成と、還元性を示さない理由</h1>
+<p class="sub">α-グルコースとβ-フルクトースの「ヘミアセタール構造」（緑の円の炭素）どうしで脱水縮合します。フルクトースの環（ケトン由来）は、厳密にはヘミケタールと呼びます。</p>
+<div class="scroll"><svg id="s" viewBox="0 0 780 400" role="img" aria-label="スクロースの生成アニメーション"></svg></div>
+<div id="cap"></div>
+<div class="ctl"><button id="b">⏸ 一時停止</button><button id="r">↺ 最初から</button><input id="k" type="range" min="0" max="1000" value="0" aria-label="進行度"></div>
+</div>
+<script>
+const G={C1:[55,0],C2:[25,30],C3:[-25,30],C4:[-55,0],C5:[-25,-30],Or:[25,-30],C6:[-25,-64],O6:[-25,-98],O1:[85,18],O2:[25,64],O3:[-25,-4],O4:[-55,34]};
+const Gb=[['C1','C2'],['C2','C3','t'],['C3','C4'],['C4','C5'],['C5','Or'],['Or','C1'],['C5','C6'],['C6','O6'],['C1','O1'],['C2','O2'],['C3','O3'],['C4','O4']];
+const F={C2:[43,-14],O2:[73,-32],C1:[53,18],O1:[53,52],C3:[27,36],O3:[27,2],C4:[-27,36],O4:[-27,70],C5:[-43,-14],Or:[0,-45],C6:[-53,-48],O6:[-53,-82]};
+const Fb=[['C2','C3'],['C3','C4','t'],['C4','C5'],['C5','Or'],['Or','C2'],['C2','C1'],['C1','O1'],['C2','O2'],['C3','O3'],['C4','O4'],['C5','C6'],['C6','O6']];
+const cl=v=>Math.max(0,Math.min(1,v)),seg=(q,a,b)=>cl((q-a)/(b-a)),ease=t=>t*t*(3-2*t),lerp=(a,b,t)=>a+(b-a)*t;
+const T=(x,y,s,f='var(--ink)',o=1,x2='')=>`<text x="${x}" y="${y}" fill="${f}" opacity="${o}" ${x2}>${s}</text>`;
+/* 分子を描く：B=結合, pf=座標関数, an=アノマー炭素, ao=アノマーO, cx=環の中心x, fo=ao側の不透明度, bridge=架橋Oの色 */
+function mol(B,pf,an,ao,cx,aoOp,aoCol,tNum){
+  let h='';
+  B.forEach(([a,b,k])=>{
+    let A=pf(a),Q=pf(b);const dx=Q[0]-A[0],dy=Q[1]-A[1],L=Math.hypot(dx,dy)||1,nx=dx/L,ny=dy/L;
+    const sa=a[0]=='O'&&a!='Or'?11:0,sb=b[0]=='O'&&b!='Or'?11:0;
+    A=[A[0]+nx*sa,A[1]+ny*sa];Q=[Q[0]-nx*sb,Q[1]-ny*sb];
+    const bond=(a==an&&b==ao)||(a==ao&&b==an);
+    h+=`<line x1="${A[0]}" y1="${A[1]}" x2="${Q[0]}" y2="${Q[1]}" stroke="${bond&&tNum>.8?'var(--accent)':'var(--ink)'}" stroke-width="${k=='t'?5:bond&&tNum>.8?2.6:1.8}" stroke-linecap="round"/>`;
+  });
+  Object.keys(pf.at).forEach(id=>{
+    const P=pf(id);
+    if(id[0]=='C'){const x=id==an;h+=`<circle cx="${P[0]}" cy="${P[1]}" r="9" fill="var(--bg)" stroke="${x?'var(--accent)':'var(--muted)'}" stroke-width="${x?2.4:1}"/>`+T(P[0],P[1],id[1],x?'var(--accent)':'var(--muted)',1,'style="font-size:11px;stroke:none"');}
+    else if(id==ao)h+=T(P[0],P[1],'O',aoCol,aoOp);
+    else if(id=='Or')h+=T(P[0],P[1],'O');
+    else h+=T(P[0],P[1],P[0]<cx-6?'HO':'OH');
+  });
+  return h;
+}
+const band=(pts,o)=>`<g opacity="${o}"><polygon points="${pts.map(q=>q.join(',')).join(' ')}" fill="var(--accent)" stroke="var(--accent)" stroke-width="40" stroke-linejoin="round"/></g>`;
+let p=0,playing=true,last=0;
+const svg=document.getElementById('s'),cap=document.getElementById('cap'),bt=document.getElementById('b'),sl=document.getElementById('k');
+const C=['α-グルコースのC1の−OHと、β-フルクトースのC2の−OHは、どちらもヘミアセタール構造の−OH。開環して鎖状になれる＝還元性のもと','β-フルクトースを180°回転（上下左右を反転）して、C2をα-グルコースのC1の側に向ける','反転したβ-フルクトースが近づく','ヘミアセタール性−OH同士が向かい合う：グルコース側の−OH（赤）と、フルクトース側の−OHのH（青）','H₂Oが脱離する（脱水縮合）','C1とC2が −O− でつながる：α-1,β-2-グリコシド結合（スクロース）','C1もC2も、ヘミアセタールの−OHがないアセタール構造になった','開環にはヘミアセタール性−OHのHの移動が必要。環のO–C結合を切れない（✕）','鎖状構造になれず、−CHO（ホルミル基）も −CO−CH₂OH（α-ヒドロキシケトン構造）もできない → スクロースは還元性を示さない'];
+function render(){
+  const t=p,cy=190,Gx=140,cyf=cy-14;
+  const th=Math.PI*ease(seg(t,.14,.36)),co=Math.cos(th),si=Math.sin(th);
+  const Fx=t<.6?lerp(560,342,ease(seg(t,.35,.5))):lerp(342,298,ease(seg(t,.6,.8)));
+  const r=ease(seg(t,.6,.8)),fo=1-seg(t,.6,.72),hl=t>.5;
+  const pg=id=>[Gx+G[id][0],cy+G[id][1]];pg.at=G;
+  const pf=id=>{const[x,y]=F[id];return[Fx+x*co-y*si,cyf+x*si+y*co]};pf.at=F;
+  const t8=seg(t,.78,.9);
+  let h=mol(Gb,pg,'C1','O1',Gx,fo,hl?'var(--red)':'var(--ink)',t8)+mol(Fb,pf,'C2','O2',Fx,1,r>0?'var(--accent)':'var(--ink)',t8);
+  const g1=pg('O1'),f2=pf('O2');
+  /* 反応に関わるH */
+  const rot=(x,y)=>[x*co-y*si,x*si+y*co],hf=rot(13,-6);
+  h+=T(g1[0]+13,g1[1]+8,'H',hl?'var(--red)':'var(--ink)',fo)+T(f2[0]+hf[0],f2[1]+hf[1],'H',hl?'var(--blue)':'var(--ink)',fo);
+  /* 序盤：ヘミアセタール構造の強調 */
+  const hO=seg(t,0,.04)*(1-seg(t,.06,.12));
+  if(hO>0){
+    h+=band([[Gx+25,cy-30],[Gx+55,cy],[Gx+85,cy+18]],.2*hO)+band([[560,cyf-45],[560+43,cyf-14],[560+73,cyf-32]],.2*hO);
+    h+=T(Gx+85,cy+88,'ヘミアセタール構造','var(--accent)',hO,'style="font-weight:700;font-size:14px"')+T(Gx+85,cy+106,'（環のO・C1・−OH）','var(--accent)',hO,'style="font-size:12px"')+T(560+73,cyf-98,'ヘミアセタール構造','var(--accent)',hO,'style="font-weight:700;font-size:14px"')+T(560+73,cyf-80,'（環のO・C2・−OH）','var(--accent)',hO,'style="font-size:12px"');
+  }
+  h+=T(Fx,62,'↻ 180°回転','var(--accent)',Math.sin(Math.PI*seg(t,.14,.36)),'style="font-weight:700"');
+  /* 反応部位の点線楕円 */
+  const eo=seg(t,.48,.54)*(1-seg(t,.58,.62));
+  if(eo>0)h+=`<ellipse cx="${(g1[0]+f2[0])/2}" cy="${cy+22}" rx="${(f2[0]-g1[0])/2+36}" ry="19" fill="none" stroke="var(--accent)" stroke-dasharray="4 4" opacity="${eo}"/>`;
+  /* 水 */
+  const wo=seg(t,.62,.7)*(1-seg(t,.88,.98));
+  if(wo>0)h+=T(g1[0]+8,cy+44+50*ease(seg(t,.7,.98)),'H₂O','var(--water)',wo,'style="font-weight:700;font-size:17px"');
+  /* ラベル */
+  const lb=(x,o)=>T(x,cy+128,o[0],'var(--muted)',o[1],'style="font-size:13px"');
+  h+=lb(Gx,['α-グルコース',1-seg(t,.75,.9)])+lb(Fx,['β-フルクトース',1-seg(t,.75,.9)]);
+  h+=T(225,cy+105,'α-1,β-2-グリコシド結合','var(--accent)',seg(t,.85,.95),'style="font-size:13px"');
+  h+=T(390,26,'α-D-グルコース ＋ β-D-フルクトース','var(--ink)',1-seg(t,.78,.88),'style="font-weight:700;font-size:17px"')+T(390,26,'スクロース（ショ糖）','var(--ink)',seg(t,.85,.95),'style="font-weight:700;font-size:17px"');
+  /* 後半：非還元性 */
+  const a1=seg(t,1,1.1);
+  if(a1>0){
+    h+=band([pg('Or'),pg('C1'),pf('O2'),pf('C2'),pf('Or')],.2*a1*(1-seg(t,1.3,1.4)));
+    h+=T(225,cy+138,'アセタール構造（ヘミアセタールの−OHがなくなった）','var(--accent)',a1,'style="font-size:13px"');
+    const mg=(a,b,o)=>[(a[0]+b[0])/2,(a[1]+b[1])/2];
+    const m1=mg(pg('C1'),pg('Or')),m2=mg(pf('C2'),pf('Or')),xo=seg(t,1.3,1.45);
+    ['✕'].forEach(()=>{h+=T(m1[0],m1[1],'✕','var(--red)',xo,'style="font-weight:700;font-size:22px"')+T(m2[0],m2[1],'✕','var(--red)',xo,'style="font-weight:700;font-size:22px"')});
+    h+=T(Gx+10,cy+158,'開環できない','var(--red)',xo,'style="font-weight:700;font-size:13px"')+T(Fx+10,cy+158,'開環できない','var(--red)',xo,'style="font-weight:700;font-size:13px"');
+    h+=T(390,372,'還元性なし（銀鏡反応・フェーリング液の還元 ✕）','var(--red)',seg(t,1.7,1.9),'style="font-weight:700;font-size:16px"');
+  }
+  svg.innerHTML=h;
+  cap.textContent=t<.12?'ヘミアセタール構造：アノマー炭素（C1／C2）に、環のOと−OHがついた部分（緑の囲み）。開環して鏎状になれる＝還元性のもと':t<.36?C[1]:t<.5?C[2]:t<.62?C[3]:t<.8?C[4]:t<1?C[5]:t<1.3?C[6]:t<1.7?C[7]:C[8];
+}
+function tick(ts){
+  if(playing){p=Math.min(2,p+(ts-last)/9000);sl.value=p/2*1000;if(p>=2){playing=false;bt.textContent='▶ 再生'}}
+  last=ts;render();requestAnimationFrame(tick);
+}
+bt.onclick=()=>{if(p>=2)p=0;playing=!playing;bt.textContent=playing?'⏸ 一時停止':'▶ 再生'};
+document.getElementById('r').onclick=()=>{p=0;playing=true;bt.textContent='⏸ 一時停止'};
+sl.oninput=()=>{p=sl.value/1000*2;playing=false;bt.textContent='▶ 再生'};
+requestAnimationFrame(ts=>{last=ts;tick(ts)});
+</script>
+</body>
+</html>

@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -21,6 +20,7 @@
       --text: #1e293b;
       --text-muted: #64748b;
       --border: #e2e8f0;
+      --ta-color: #ea580c;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -115,6 +115,9 @@
       width: 0%;
       transition: width 0.3s ease;
     }
+    .progress-bar.ta-mode {
+      background: var(--ta-color);
+    }
 
     .status-text {
       display: flex;
@@ -139,6 +142,19 @@
     .level-badge.lvl-1 { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
     .level-badge.lvl-2 { background: #fef3c7; color: #b45309; border: 1px solid #fde68a; }
     .level-badge.lvl-3 { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+
+    /* タイムアタック用の情報表示 */
+    .timer-display {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--ta-color);
+      display: none;
+    }
+    .score-display {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
 
     .question-card {
       background: #fafafa;
@@ -185,6 +201,12 @@
       transition: background 0.2s;
     }
     .btn:hover { background: var(--primary-hover); }
+    .btn.btn-ta {
+      background: var(--ta-color);
+    }
+    .btn.btn-ta:hover {
+      background: #c2410c;
+    }
 
     .feedback-card {
       display: none;
@@ -235,10 +257,18 @@
       padding: 20px 0;
     }
     .result-score {
-      font-size: 2.5rem;
+      font-size: 3rem;
       font-weight: 800;
       color: var(--primary);
-      margin: 16px 0;
+      margin: 12px 0;
+    }
+    .ta-breakdown {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      font-size: 1.1rem;
+      margin-bottom: 20px;
+      color: var(--text);
     }
 
     @keyframes fadeIn {
@@ -255,15 +285,21 @@
   </header>
 
   <div class="controls-row">
-    <label for="setSelect" style="font-size: 0.9rem; font-weight: 600;">出題範囲:</label>
+    <label for="setSelect" style="font-size: 0.9rem; font-weight: 600;">出題モード:</label>
     <select id="setSelect" onchange="changeSet()">
-      <optgroup label="全範囲・レベル別">
-        <option value="all">【全問題】第1集〜第10集 (全150問)</option>
-        <option value="level1">【レベル1】 基礎問題 (各集 1〜6問目 / 全60問)</option>
-        <option value="level2">【レベル2】 標準問題 (各集 7〜10問目 / 全40問)</option>
-        <option value="level3">【レベル3】 応用問題 (各集 11〜15問目 / 全50問)</option>
+      <optgroup label="⏱️ タイムアタックモード (制限時間3分)">
+        <option value="ta_all">⚡【タイムアタック】全問題 (全150問)</option>
+        <option value="ta_lvl1">⚡【タイムアタック】レベル1 基礎 (60問)</option>
+        <option value="ta_lvl2">⚡【タイムアタック】レベル2 標準 (40問)</option>
+        <option value="ta_lvl3">⚡【タイムアタック】レベル3 応用 (50問)</option>
       </optgroup>
-      <optgroup label="プリント個別選択 (各15問)">
+      <optgroup label="📖 通常演習 (全範囲・レベル別)">
+        <option value="all">【通常】全問題 (第1集〜第10集 / 150問)</option>
+        <option value="level1">【通常】レベル1 基礎 (60問)</option>
+        <option value="level2">【通常】レベル2 標準 (40問)</option>
+        <option value="level3">【通常】レベル3 応用 (50問)</option>
+      </optgroup>
+      <optgroup label="📄 プリント個別選択 (各15問)">
         <option value="set1">【第1集】 (モル計算1)</option>
         <option value="set2">【第2集】 (モル計算2)</option>
         <option value="set3">【第3集】 (モル計算3)</option>
@@ -283,7 +319,7 @@
   <!-- 定数表示領域 -->
   <div class="constants-box" id="constantsBox">
     <strong>【必要な定数】</strong><br>
-    ・原子量: $H=1.0$, $He=4.0$, $Li=7.0$, $C=12$, $N=14$, $O=16$, $F=19$, $Ne=20$, $Na=23$, $Mg=24$, $Al=27$, $Si=28$, $P=31$, $S=32$, $Cl=35.5$, $K=39$, $Ca=40$, $Fe=56$, $Cu=63.5$, $Zn=65$, $Ag=108$<br>
+    ・原子量: $H=1.0$, $He=4.0$, $Li=7.0$, $C=12$, $N=14$, $O=16$, $F=19$, $Ne=20$, $Na=23$, $Mg=24$, $Al=27$, $Si=28$, $P=31$, $S=32$, $Cl=35.5$, $K=39$, $Ca=40$, $Fe=56$, $Cu=63.5$, $Zn=65$, $Ag=108$, $Xe=131$<br>
     ・アボガドロ定数: $N_A = 6.0 \times 10^{23}/\text{mol}$<br>
     ・気体のモル体積(標準状態): $22.4\text{ L/mol}$
   </div>
@@ -299,7 +335,8 @@
         <span id="questionNum">第 1 問</span>
         <span id="levelBadge" class="level-badge lvl-1">レベル1</span>
       </div>
-      <span id="scoreText">正解数: 0 / 0</span>
+      <div id="timerDisplay" class="timer-display">⏱️ 残り時間: 03:00</div>
+      <span id="scoreText" class="score-display">正解数: 0 / 0</span>
     </div>
 
     <div class="question-card" id="questionCard">
@@ -322,15 +359,19 @@
 
   <!-- 結果画面 -->
   <div class="result-screen" id="resultScreen">
-    <h2>演習完了！</h2>
-    <p style="color: var(--text-muted); margin-top: 8px;">お疲れ様でした。選択されたすべての問題が終了しました。</p>
-    <div class="result-score" id="finalScore">15 / 15</div>
-    <button class="btn" style="padding: 14px 32px; font-size: 1.1rem;" onclick="restartQuiz()">もう一度解く (問題をシャッフル)</button>
+    <h2 id="resultTitle">演習完了！</h2>
+    <p id="resultSubtitle" style="color: var(--text-muted); margin-top: 8px;">お疲れ様でした。</p>
+    <div class="result-score" id="finalScore">0点</div>
+    <div class="ta-breakdown" id="taBreakdown">
+      <div>⭕ 正解: <strong id="correctCountText" style="color: var(--success);">0</strong> 問 (+0pt)</div>
+      <div>❌ 不正解: <strong id="incorrectCountText" style="color: var(--error);">0</strong> 問 (-0pt)</div>
+    </div>
+    <button class="btn" id="restartBtn" style="padding: 14px 32px; font-size: 1.1rem;" onclick="restartQuiz()">もう一度挑戦する (シャッフル)</button>
   </div>
 </div>
 
 <script>
-// 問題データベース（第1集〜第10集）
+// 全10集（150問題）の完全データベース
 const questionSets = {
   set1: [
     { q: "アルミニウム $\\mathrm{Al}\\ 0.20\\text{ mol}$ の質量は何 $\\text{g}$ か。", a: ["5.4", "5.4g"], displayA: "$5.4\\text{ g}$", exp: "$\\mathrm{Al}$ の原子量は $27$ なので、モル質量は $27\\text{ g/mol}$。<br>計算: $0.20\\text{ mol} \\times 27\\text{ g/mol} = 5.4\\text{ g}$" },
@@ -348,6 +389,125 @@ const questionSets = {
     { q: "標準状態において、ある気体の密度が $1.25\\text{ g/L}$ であった。この気体の分子量を求めよ。", a: ["28", "28.0"], displayA: "$28$", exp: "モル質量 $= 1.25\\text{ g/L} \\times 22.4\\text{ L/mol} = 28\\text{ g/mol}$。<br>したがって、分子量は $28$。" },
     { q: "水 $\\mathrm{H_2O}\\ 9.0\\text{ g}$ に含まれる「水素原子 $\\mathrm{H}$」の総数は何個か。", a: ["6.0*10^23", "6x10^23", "6.0x10^23", "6.0×10^23", "6.0*10^23個"], displayA: "$6.0 \\times 10^{23}\\text{ 個}$", exp: "$\\mathrm{H_2O}$ の物質量: $\\frac{9.0\\text{ g}}{18\\text{ g/mol}} = 0.50\\text{ mol}$<br>分子 $1$ 個中に $\\mathrm{H}$ は $2$ 個含まれるため、$\\mathrm{H}$ 原子数 $= 0.50\\text{ mol} \\times 2 \\times 6.0 \\times 10^{23}/\\text{mol} = 6.0 \\times 10^{23}\\text{ 個}$" },
     { q: "同温・同圧において、ある気体Xの密度は酸素 $\\mathrm{O_2}$ の密度の $1.375$ 倍であった。気体Xの分子量を求めよ。", a: ["44", "44.0"], displayA: "$44$", exp: "酸素 $\\mathrm{O_2}$ の分子量 $= 32$。<br>気体Xの分子量 $= 32 \\times 1.375 = 44$" }
+  ],
+  set2: [
+    { q: "カルシウム $\\mathrm{Ca}\\ 0.40\\text{ mol}$ の質量は何 $\\text{g}$ か。", a: ["16", "16g", "16.0"], displayA: "$16\\text{ g}$", exp: "$\\mathrm{Ca}$ の原子量は $40$。<br>計算: $0.40\\text{ mol} \\times 40\\text{ g/mol} = 16\\text{ g}$" },
+    { q: "メタン $\\mathrm{CH_4}\\ 8.0\\text{ g}$ の物質量は何 $\\text{mol}$ か。", a: ["0.50", "0.5", "0.50mol", "0.5mol"], displayA: "$0.50\\text{ mol}$", exp: "$\\mathrm{CH_4}$ の分子量は $16$。<br>計算: $\\frac{8.0\\text{ g}}{16\\text{ g/mol}} = 0.50\\text{ mol}$" },
+    { q: "ヘリウム $\\mathrm{He}\\ 2.5\\text{ mol}$ に含まれるヘリウム原子の数は何個か。", a: ["1.5*10^24", "1.5x10^24", "1.5×10^24", "1.5*10^24個"], displayA: "$1.5 \\times 10^{24}\\text{ 個}$", exp: "計算: $2.5\\text{ mol} \\times 6.0 \\times 10^{23}/\\text{mol} = 1.5 \\times 10^{24}\\text{ 個}$" },
+    { q: "酸素分子 $\\mathrm{O_2}\\ 3.0 \\times 10^{23}\\text{ 個}$ の物質量は何 $\\text{mol}$ か。", a: ["0.50", "0.5", "0.50mol", "0.5mol"], displayA: "$0.50\\text{ mol}$", exp: "計算: $\\frac{3.0 \\times 10^{23}}{6.0 \\times 10^{23}/\\text{mol}} = 0.50\\text{ mol}$" },
+    { q: "標準状態において、窒素 $\\mathrm{N_2}\\ 1.5\\text{ mol}$ の体積は何 $\\text{L}$ か。", a: ["33.6", "33.6L"], displayA: "$33.6\\text{ L}$", exp: "計算: $1.5\\text{ mol} \\times 22.4\\text{ L/mol} = 33.6\\text{ L}$" },
+    { q: "標準状態において、一酸化炭素 $\\mathrm{CO}\\ 11.2\\text{ L}$ の物質量は何 $\\text{mol}$ か。", a: ["0.50", "0.5", "0.50mol", "0.5mol"], displayA: "$0.50\\text{ mol}$", exp: "計算: $\\frac{11.2\\text{ L}}{22.4\\text{ L/mol}} = 0.50\\text{ mol}$" },
+    { q: "二酸化炭素分子 $\\mathrm{CO_2}\\ 1.2 \\times 10^{23}\\text{ 個}$ の質量は何 $\\text{g}$ か。", a: ["8.8", "8.8g"], displayA: "$8.8\\text{ g}$", exp: "$\\mathrm{CO_2}$ の分子量は $44$。<br>物質量: $\\frac{1.2 \\times 10^{23}}{6.0 \\times 10^{23}/\\text{mol}} = 0.20\\text{ mol}$<br>質量: $0.20\\text{ mol} \\times 44\\text{ g/mol} = 8.8\\text{ g}$" },
+    { q: "メタン $\\mathrm{CH_4}\\ 32\\text{ g}$ の標準状態における体積は何 $\\text{L}$ か。", a: ["44.8", "44.8L"], displayA: "$44.8\\text{ L}$", exp: "物質量: $\\frac{32\\text{ g}}{16\\text{ g/mol}} = 2.0\\text{ mol}$<br>体積: $2.0\\text{ mol} \\times 22.4\\text{ L/mol} = 44.8\\text{ L}$" },
+    { q: "標準状態で $6.72\\text{ L}$ を占める塩素 $\\mathrm{Cl_2}$ に含まれる塩素分子の数は何個か。", a: ["1.8*10^23", "1.8x10^23", "1.8×10^23", "1.8*10^23個"], displayA: "$1.8 \\times 10^{23}\\text{ 個}$", exp: "物質量: $\\frac{6.72\\text{ L}}{22.4\\text{ L/mol}} = 0.30\\text{ mol}$<br>分子数: $0.30\\text{ mol} \\times 6.0 \\times 10^{23}/\\text{mol} = 1.8 \\times 10^{23}\\text{ 個}$" },
+    { q: "蔗糖(スクロース) $0.050\\text{ mol}$ を水に溶かして $250\\text{ mL}$ にした水溶液のモル濃度は何 $\\text{mol/L}$ か。", a: ["0.20", "0.2", "0.20mol/L", "0.2mol/L"], displayA: "$0.20\\text{ mol/L}$", exp: "モル濃度 $= \\frac{0.050\\text{ mol}}{0.250\\text{ L}} = 0.20\\text{ mol/L}$" },
+    { q: "塩化ナトリウム $\\mathrm{NaCl}\\ 11.7\\text{ g}$ を水に溶かして $400\\text{ mL}$ にした水溶液のモル濃度は何 $\\text{mol/L}$ か。", a: ["0.50", "0.5", "0.50mol/L", "0.5mol/L"], displayA: "$0.50\\text{ mol/L}$", exp: "$\\mathrm{NaCl}$ の式量は $58.5$。<br>物質量: $\\frac{11.7\\text{ g}}{58.5\\text{ g/mol}} = 0.20\\text{ mol}$<br>モル濃度: $\\frac{0.20\\text{ mol}}{0.400\\text{ L}} = 0.50\\text{ mol/L}$" },
+    { q: "$0.20\\text{ mol/L}$ の水酸化ナトリウム $\\mathrm{NaOH}$ 水溶液を $500\\text{ mL}$ 調製したい。必要な水酸化ナトリウム $\\mathrm{NaOH}$ の質量は何 $\\text{g}$ か。", a: ["4.0", "4", "4.0g", "4g"], displayA: "$4.0\\text{ g}$", exp: "必要な物質量: $0.20\\text{ mol/L} \\times 0.500\\text{ L} = 0.10\\text{ mol}$<br>必要な質量: $0.10\\text{ mol} \\times 40\\text{ g/mol} = 4.0\\text{ g}$" },
+    { q: "標準状態において、ある未知の気体の密度が $2.86\\text{ g/L}$ であった。この気体の分子量を求めよ。", a: ["64", "64.0"], displayA: "$64$", exp: "モル質量 $= 2.86\\text{ g/L} \\times 22.4\\text{ L/mol} \\approx 64.06\\text{ g/mol}$。<br>したがって、分子量は $64$。" },
+    { q: "メタン $\\mathrm{CH_4}\\ 4.0\\text{ g}$ に含まれる「水素原子 $\\mathrm{H}$」の総数は何個か。", a: ["6.0*10^23", "6x10^23", "6.0x10^23", "6.0×10^23", "6.0*10^23個"], displayA: "$6.0 \\times 10^{23}\\text{ 個}$", exp: "$\\mathrm{CH_4}$ の物質量: $\\frac{4.0\\text{ g}}{16\\text{ g/mol}} = 0.25\\text{ mol}$<br>水素原子の物質量 $= 0.25\\text{ mol} \\times 4 = 1.0\\text{ mol}$<br>水素原子数 $= 1.0\\text{ mol} \\times 6.0 \\times 10^{23}/\\text{mol} = 6.0 \\times 10^{23}\\text{ 個}$" },
+    { q: "同温・同圧において、ある気体Yの密度は二酸化炭素 $\\mathrm{CO_2}$ の密度の $0.64$ 倍であった。気体の分子量を求めよ。", a: ["28", "28.0", "28.16"], displayA: "$28$", exp: "$\\mathrm{CO_2}$ の分子量 $= 44$。<br>気体Yの分子量 $= 44 \\times 0.64 = 28.16 \\approx 28$" }
+  ],
+  set3: [
+    { q: "銅 $\\mathrm{Cu}\\ 0.15\\text{ mol}$ の質量は何 $\\text{g}$ か。", a: ["9.6", "9.6g"], displayA: "$9.6\\text{ g}$", exp: "$\\mathrm{Cu}$ の原子量は $64$。<br>計算: $0.15\\text{ mol} \\times 64\\text{ g/mol} = 9.6\\text{ g}$" },
+    { q: "プロパン $\\mathrm{C_3H_8}\\ 11\\text{ g}$ の物質量は何 $\\text{mol}$ か。", a: ["0.25", "0.25mol"], displayA: "$0.25\\text{ mol}$", exp: "$\\mathrm{C_3H_8}$ の分子量は $44$。<br>計算: $\\frac{11\\text{ g}}{44\\text{ g/mol}} = 0.25\\text{ mol}$" },
+    { q: "マグネシウム $\\mathrm{Mg}\\ 0.40\\text{ mol}$ に含まれるマグネシウム原子の数は何個か。", a: ["2.4*10^23", "2.4x10^23", "2.4×10^23", "2.4*10^23個"], displayA: "$2.4 \\times 10^{23}\\text{ 個}$", exp: "計算: $0.40\\text{ mol} \\times 6.0 \\times 10^{23}/\\text{mol} = 2.4 \\times 10^{23}\\text{ 個}$" },
+    { q: "水分子 $\\mathrm{H_2O}\\ 1.5 \\times 10^{23}\\text{ 個}$ の物質量は何 $\\text{mol}$ か。", a: ["0.25", "0.25mol"], displayA: "$0.25\\text{ mol}$", exp: "計算: $\\frac{1.5 \\times 10^{23}}{6.0 \\times 10^{23}/\\text{mol}} = 0.25\\text{ mol}$" },
+    { q: "標準状態において、アルゴン $\\mathrm{Ar}\\ 0.75\\text{ mol}$ の体積は何 $\\text{L}$ か。", a: ["16.8", "16.8L"], displayA: "$16.8\\text{ L}$", exp: "計算: $0.75\\text{ mol} \\times 22.4\\text{ L/mol} = 16.8\\text{ L}$" },
+    { q: "標準状態において、メタン $\\mathrm{CH_4}\\ 16.8\\text{ L}$ の物質量は何 $\\text{mol}$ か。", a: ["0.75", "0.75mol"], displayA: "$0.75\\text{ mol}$", exp: "計算: $\\frac{16.8\\text{ L}}{22.4\\text{ L/mol}} = 0.75\\text{ mol}$" },
+    { q: "グルコース $\\mathrm{C_6H_{12}O_6}\\ 3.0 \\times 10^{22}\\text{ 個}$ の質量は何 $\\text{g}$ か。", a: ["9.0", "9", "9.0g", "9g"], displayA: "$9.0\\text{ g}$", exp: "分子量は $180$。<br>物質量: $0.050\\text{ mol}$<br>質量: $0.050\\text{ mol} \\times 180\\text{ g/mol} = 9.0\\text{ g}$" },
+    { q: "硫化水素 $\\mathrm{H_2S}\\ 17\\text{ g}$ の標準状態における体積は何 $\\text{L}$ か。", a: ["11.2", "11.2L"], displayA: "$11.2\\text{ L}$", exp: "分子量は $34$。<br>物質量: $0.50\\text{ mol}$<br>体積: $0.50\\text{ mol} \\times 22.4\\text{ L/mol} = 11.2\\text{ L}$" },
+    { q: "標準状態で $4.48\\text{ L}$ を占めるフッ化水素 $\\mathrm{HF}$ に含まれる分子の数は何個か。", a: ["1.2*10^23", "1.2x10^23", "1.2×10^23", "1.2*10^23個"], displayA: "$1.2 \\times 10^{23}\\text{ 個}$", exp: "物質量: $0.20\\text{ mol}$<br>分子数: $0.20\\text{ mol} \\times 6.0 \\times 10^{23}/\\text{mol} = 1.2 \\times 10^{23}\\text{ 個}$" },
+    { q: "尿素 $(\\mathrm{NH_2})_2\\mathrm{CO}\\ 0.12\\text{ mol}$ を水に溶かして $300\\text{ mL}$ にした水溶液のモル濃度は何 $\\text{mol/L}$ か。", a: ["0.40", "0.4", "0.40mol/L", "0.4mol/L"], displayA: "$0.40\\text{ mol/L}$", exp: "モル濃度 $= \\frac{0.12\\text{ mol}}{0.300\\text{ L}} = 0.40\\text{ mol/L}$" },
+    { q: "塩化カリウム $\\mathrm{KCl}\\ 14.9\\text{ g}$ を水に溶かして $500\\text{ mL}$ にした水溶液のモル濃度は何 $\\text{mol/L}$ か。", a: ["0.40", "0.4", "0.40mol/L", "0.4mol/L"], displayA: "$0.40\\text{ mol/L}$", exp: "$\\mathrm{KCl}$ の式量は $74.5$。<br>物質量: $0.20\\text{ mol}$<br>モル濃度: $\\frac{0.20\\text{ mol}}{0.500\\text{ L}} = 0.40\\text{ mol/L}$" },
+    { q: "$0.40\\text{ mol/L}$ の硫酸銅(II) $\\mathrm{CuSO_4}$ 水溶液を $250\\text{ mL}$ 調製したい。必要な $\\mathrm{CuSO_4}$ の質量は何 $\\text{g}$ か。", a: ["16", "16g", "16.0"], displayA: "$16\\text{ g}$", exp: "式量は $160$。<br>必要な物質量: $0.10\\text{ mol}$<br>必要な質量: $0.10\\text{ mol} \\times 160\\text{ g/mol} = 16\\text{ g}$" },
+    { q: "標準状態において、ある未知の気体の密度が $1.96\\text{ g/L}$ であった。この気体の分子量を求めよ。", a: ["44", "44.0"], displayA: "$44$", exp: "モル質量 $= 1.96\\text{ g/L} \\times 22.4\\text{ L/mol} \\approx 43.9\\text{ g/mol}$。<br>したがって、分子量は $44$。" },
+    { q: "エタノール $\\mathrm{C_2H_5OH}\\ 2.3\\text{ g}$ に含まれる「水素原子 $\\mathrm{H}$」の総数は何個か。", a: ["1.8*10^23", "1.8x10^23", "1.8×10^23", "1.8*10^23個"], displayA: "$1.8 \\times 10^{23}\\text{ 個}$", exp: "$\\mathrm{C_2H_5OH}$ の物質量: $0.050\\text{ mol}$<br>$\\mathrm{H}$ 原子数 $= 0.050\\text{ mol} \\times 6 \\times 6.0 \\times 10^{23}/\\text{mol} = 1.8 \\times 10^{23}\\text{ 個}$" },
+    { q: "同温・同圧において、ある気体Zの密度は窒素 $\\mathrm{N_2}$ の密度の $2.0$ 倍であった。気体Zの分子量を求めよ。", a: ["56", "56.0"], displayA: "$56$", exp: "$\\mathrm{N_2}$ の分子量 $= 28$。<br>気体Zの分子量 $= 28 \\times 2.0 = 56$" }
+  ],
+  set4: [
+    { q: "マグネシウム $\\mathrm{Mg}\\ 0.60\\text{ mol}$ の質量は何 $\\text{g}$ か。", a: ["14.4", "14", "14.4g", "14g"], displayA: "$14.4\\text{ g}$ (または $14\\text{ g}$)", exp: "$\\mathrm{Mg}$ の原子量は $24$。<br>計算: $0.60\\text{ mol} \\times 24\\text{ g/mol} = 14.4\\text{ g}$" },
+    { q: "硫酸アンモニウム $(\\mathrm{NH_4})_2\\mathrm{SO_4}\\ 66\\text{ g}$ の物質量は何 $\\text{mol}$ か。", a: ["0.50", "0.5", "0.50mol", "0.5mol"], displayA: "$0.50\\text{ mol}$", exp: "式量は $132$。<br>計算: $\\frac{66\\text{ g}}{132\\text{ g/mol}} = 0.50\\text{ mol}$" },
+    { q: "塩化カリウム $\\mathrm{KCl}\\ 0.30\\text{ mol}$ に含まれるカリウムイオン $\\mathrm{K^+}$ と塩化物イオン $\\mathrm{Cl^-}$ の総数は何個か。", a: ["3.6*10^23", "3.6x10^23", "3.6×10^23", "3.6*10^23個"], displayA: "$3.6 \\times 10^{23}\\text{ 個}$", exp: "イオンの総物質量 $= 0.30\\text{ mol} \\times 2 = 0.60\\text{ mol}$<br>イオンの総数 $= 0.60\\text{ mol} \\times 6.0 \\times 10^{23}/\\text{mol} = 3.6 \\times 10^{23}\\text{ 個}$" },
+    { q: "硫化水素分子 $\\mathrm{H_2S}\\ 4.5 \\times 10^{23}\\text{ 個}$ の物質量は何 $\\text{mol}$ か。", a: ["0.75", "0.75mol"], displayA: "$0.75\\text{ mol}$", exp: "計算: $\\frac{4.5 \\times 10^{23}}{6.0 \\times 10^{23}/\\text{mol}} = 0.75\\text{ mol}$" },
+    { q: "標準状態において、プロパン $\\mathrm{C_3H_8}\\ 0.40\\text{ mol}$ の体積は何 $\\text{L}$ か。", a: ["8.96", "9.0", "8.96L", "9.0L"], displayA: "$8.96\\text{ L}$ (約 $9.0\\text{ L}$)", exp: "計算: $0.40\\text{ mol} \\times 22.4\\text{ L/mol} = 8.96\\text{ L}$" },
+    { q: "標準状態において、二酸化硫黄 $\\mathrm{SO_2}\\ 8.96\\text{ L}$ の物質量は何 $\\text{mol}$ か。", a: ["0.40", "0.4", "0.40mol", "0.4mol"], displayA: "$0.40\\text{ mol}$", exp: "計算: $\\frac{8.96\\text{ L}}{22.4\\text{ L/mol}} = 0.40\\text{ mol}$" },
+    { q: "酸素分子 $\\mathrm{O_2}\\ 9.0 \\times 10^{23}\\text{ 個}$ の質量は何 $\\text{g}$ か。", a: ["48", "48g", "48.0"], displayA: "$48\\text{ g}$", exp: "$\\mathrm{O_2}$ の分子量は $32$。<br>物質量: $1.5\\text{ mol}$<br>質量: $1.5\\text{ mol} \\times 32\\text{ g/mol} = 48\\text{ g}$" },
+    { q: "アンモニア $\\mathrm{NH_3}\\ 5.1\\text{ g}$ の標準状態における体積は何 $\\text{L}$ か。", a: ["6.72", "6.7", "6.72L", "6.7L"], displayA: "$6.72\\text{ L}$ (約 $6.7\\text{ L}$)", exp: "$\\mathrm{NH_3}$ の分子量は $17$。<br>物質量: $0.30\\text{ mol}$<br>体積: $0.30\\text{ mol} \\times 22.4\\text{ L/mol} = 6.72\\text{ L}$" },
+    { q: "標準状態で $3.36\\text{ L}$ を占めるキセノン $\\mathrm{Xe}$ に含まれる原子の数は何個か。", a: ["9.0*10^22", "9x10^22", "9.0x10^22", "9.0×10^22", "9.0*10^22個"], displayA: "$9.0 \\times 10^{22}\\text{ 個}$", exp: "物質量: $0.15\\text{ mol}$<br>原子数: $0.15\\text{ mol} \\times 6.0 \\times 10^{23}/\\text{mol} = 9.0 \\times 10^{22}\\text{ 個}$" },
+    { q: "ショ糖 $\\mathrm{C_{12}H_{22}O_{11}}\\ 0.15\\text{ mol}$ を水に溶かして $600\\text{ mL}$ にした水溶液のモル濃度は何 $\\text{mol/L}$ か。", a: ["0.25", "0.25mol/L"], displayA: "$0.25\\text{ mol/L}$", exp: "モル濃度 $= \\frac{0.15\\text{ mol}}{0.600\\text{ L}} = 0.25\\text{ mol/L}$" },
+    { q: "炭酸ナトリウム $\\mathrm{Na_2CO_3}\\ 21.2\\text{ g}$ を水に溶かして $800\\text{ mL}$ にした水溶液のモル濃度は何 $\\text{mol/L}$ か。", a: ["0.25", "0.25mol/L"], displayA: "$0.25\\text{ mol/L}$", exp: "式量は $106$。<br>物質量: $0.20\\text{ mol}$<br>モル濃度: $\\frac{0.20\\text{ mol}}{0.800\\text{ L}} = 0.25\\text{ mol/L}$" },
+    { q: "$0.30\\text{ mol/L}$ の水酸化ナトリウム $\\mathrm{NaOH}$ 水溶液を $400\\text{ mL}$ 調製したい。必要な $\\mathrm{NaOH}$ の質量は何 $\\text{g}$ か。", a: ["4.8", "4.8g"], displayA: "$4.8\\text{ g}$", exp: "必要な物質量: $0.12\\text{ mol}$<br>必要な質量: $0.12\\text{ mol} \\times 40\\text{ g/mol} = 4.8\\text{ g}$" },
+    { q: "標準状態において、ある未知の気体の密度が $2.50\\text{ g/L}$ であった。この気体の分子量を求めよ。", a: ["56", "56.0"], displayA: "$56$", exp: "モル質量 $= 2.50\\text{ g/L} \\times 22.4\\text{ L/mol} = 56\\text{ g/mol}$。<br>したがって、分子量は $56$。" },
+    { q: "グルコース $\\mathrm{C_6H_{12}O_6}\\ 9.0\\text{ g}$ に含まれる「酸素原子 $\\mathrm{O}$」の総数は何個か。", a: ["1.8*10^23", "1.8x10^23", "1.8×10^23", "1.8*10^23個"], displayA: "$1.8 \\times 10^{23}\\text{ 個}$", exp: "グルコースの物質量: $0.050\\text{ mol}$<br>$\\mathrm{O}$ 原子数 $= 0.050\\text{ mol} \\times 6 \\times 6.0 \\times 10^{23}/\\text{mol} = 1.8 \\times 10^{23}\\text{ 個}$" },
+    { q: "同温・同圧において、ある気体Wの密度はメタン $\\mathrm{CH_4}$ の密度の $2.75$ 倍であった。気体Wの分子量を求めよ。", a: ["44", "44.0"], displayA: "$44$", exp: "$\\mathrm{CH_4}$ の分子量 $= 16$。<br>気体Wの分子量 $= 16 \\times 2.75 = 44$" }
+  ],
+  set5: [
+    { q: "鉄 $\\mathrm{Fe}\\ 0.15\\text{ mol}$ の質量は何 $\\text{g}$ か。", a: ["8.4", "8.4g"], displayA: "$8.4\\text{ g}$", exp: "$\\mathrm{Fe}$ の原子量は $56$。<br>計算: $0.15\\text{ mol} \\times 56\\text{ g/mol} = 8.4\\text{ g}$" },
+    { q: "亜鉛 $\\mathrm{Zn}\\ 13.08\\text{ g}$ の物質量は何 $\\text{mol}$ か。", a: ["0.20", "0.2", "0.20mol", "0.2mol"], displayA: "$0.20\\text{ mol}$", exp: "$\\mathrm{Zn}$ の原子量は $65.4$。<br>計算: $\\frac{13.08\\text{ g}}{65.4\\text{ g/mol}} = 0.20\\text{ mol}$" },
+    { q: "ヘリウム $\\mathrm{He}\\ 0.40\\text{ mol}$ に含まれるヘリウム原子の数は何個か。", a: ["2.4*10^23", "2.4x10^23", "2.4×10^23", "2.4*10^23個"], displayA: "$2.4 \\times 10^{23}\\text{ 個}$", exp: "計算: $0.40\\text{ mol} \\times 6.0 \\times 10^{23}/\\text{mol} = 2.4 \\times 10^{23}\\text{ 個}$" },
+    { q: "塩化カルシウム $\\mathrm{CaCl_2}\\ 9.0 \\times 10^{22}\\text{ 個}$ の物質量は何 $\\text{mol}$ か。", a: ["0.15", "0.15mol"], displayA: "$0.15\\text{ mol}$", exp: "計算: $\\frac{9.0 \\times 10^{22}}{6.0 \\times 10^{23}/\\text{mol}} = 0.15\\text{ mol}$" },
+    { q: "標準状態において、プロパン $\\mathrm{C_3H_8}\\ 0.75\\text{ mol}$ の体積は何 $\\text{L}$ か。", a: ["16.8", "16.8L"], displayA: "$16.8\\text{ L}$", exp: "計算: $0.75\\text{ mol} \\times 22.4\\text{ L/mol} = 16.8\\text{ L}$" },
+    { q: "標準状態において、硫化水素 $\\mathrm{H_2S}\\ 8.96\\text{ L}$ の物質量は何 $\\text{mol}$ か。", a: ["0.40", "0.4", "0.40mol", "0.4mol"], displayA: "$0.40\\text{ mol}$", exp: "計算: $\\frac{8.96\\text{ L}}{22.4\\text{ L/mol}} = 0.40\\text{ mol}$" },
+    { q: "グルコース $\\mathrm{C_6H_{12}O_6}\\ 1.2 \\times 10^{23}\\text{ 個}$ の質量は何 $\\text{g}$ か。", a: ["36", "36g", "36.0"], displayA: "$36\\text{ g}$", exp: "分子量は $180$。<br>物質量: $0.20\\text{ mol}$<br>質量: $0.20\\text{ mol} \\times 180\\text{ g/mol} = 36\\text{ g}$" },
+    { q: "標準状態において、一酸化窒素 $\\mathrm{NO}\\ 15\\text{ g}$ が占める体積は何 $\\text{L}$ か。", a: ["11.2", "11.2L"], displayA: "$11.2\\text{ L}$", exp: "分子量は $30$。<br>物質量: $0.50\\text{ mol}$<br>体積: $0.50\\text{ mol} \\times 22.4\\text{ L/mol} = 11.2\\text{ L}$" },
+    { q: "標準状態で $3.36\\text{ L}$ を占める塩素 $\\mathrm{Cl_2}$ に含まれる塩素分子の数は何個か。", a: ["9.0*10^22", "9x10^22", "9.0x10^22", "9.0×10^22", "9.0*10^22個"], displayA: "$9.0 \\times 10^{22}\\text{ 個}$", exp: "物質量: $0.15\\text{ mol}$<br>分子数: $0.15\\text{ mol} \\times 6.0 \\times 10^{23}/\\text{mol} = 9.0 \\times 10^{22}\\text{ 個}$" },
+    { q: "ショ糖 $\\mathrm{C_{12}H_{22}O_{11}}\\ 0.050\\text{ mol}$ を水に溶かして $250\\text{ mL}$ にした溶液のモル濃度は何 $\\text{mol/L}$ か。", a: ["0.20", "0.2", "0.20mol/L", "0.2mol/L"], displayA: "$0.20\\text{ mol/L}$", exp: "モル濃度 $= \\frac{0.050\\text{ mol}}{0.250\\text{ L}} = 0.20\\text{ mol/L}$" },
+    { q: "硫酸ナトリウム $\\mathrm{Na_2SO_4}\\ 14.2\\text{ g}$ を水に溶かして $400\\text{ mL}$ にした水溶液のモル濃度は何 $\\text{mol/L}$ か。", a: ["0.25", "0.25mol/L"], displayA: "$0.25\\text{ mol/L}$", exp: "式量は $142$。<br>物質量: $0.10\\text{ mol}$<br>モル濃度: $\\frac{0.10\\text{ mol}}{0.400\\text{ L}} = 0.25\\text{ mol/L}$" },
+    { q: "$0.20\\text{ mol/L}$ の水酸化ナトリウム $\\mathrm{NaOH}$ 水溶液を $500\\text{ mL}$ 調製したい。必要な $\\mathrm{NaOH}$ の質量は何 $\\text{g}$ か。", a: ["4.0", "4", "4.0g", "4g"], displayA: "$4.0\\text{ g}$", exp: "必要な物質量: $0.10\\text{ mol}$<br>必要な質量: $0.10\\text{ mol} \\times 40\\text{ g/mol} = 4.0\\text{ g}$" },
+    { q: "標準状態において、ある未知気体の密度が $2.86\\text{ g/L}$ であった。この気体の分子量を求めよ。", a: ["64", "64.0"], displayA: "$64$", exp: "モル質量 $= 2.86\\text{ g/L} \\times 22.4\\text{ L/mol} \\approx 64\\text{ g/mol}$。<br>したがって、分子量は $64$。" },
+    { q: "硫酸 $\\mathrm{H_2SO_4}\\ 4.9\\text{ g}$ に含まれる「酸素原子 $\\mathrm{O}$」の総数は何個か。", a: ["1.2*10^23", "1.2x10^23", "1.2×10^23", "1.2*10^23個"], displayA: "$1.2 \\times 10^{23}\\text{ 個}$", exp: "$\\mathrm{H_2SO_4}$ の分子量は $98$。<br>物質量: $0.050\\text{ mol}$<br>$\\mathrm{O}$ 原子数 $= 0.050\\text{ mol} \\times 4 \\times 6.0 \\times 10^{23}/\\text{mol} = 1.2 \\times 10^{23}\\text{ 個}$" },
+    { q: "同温・同圧において、ある気体Yの密度は窒素 $\\mathrm{N_2}$ の密度の $1.60$ 倍であった。気体Yの分子量を求めよ。", a: ["44.8", "45", "44.80"], displayA: "$44.8$ (または概数 $45$)", exp: "$\\mathrm{N_2}$ の分子量 $= 28$。<br>気体Yの分子量 $= 28 \\times 1.60 = 44.8$" }
+  ],
+  set6: [
+    { q: "銀 $\\mathrm{Ag}\\ 0.25\\text{ mol}$ の質量は何 $\\text{g}$ か。", a: ["27", "27g", "27.0"], displayA: "$27\\text{ g}$", exp: "$\\mathrm{Ag}$ の原子量は $108$。<br>計算: $0.25\\text{ mol} \\times 108\\text{ g/mol} = 27\\text{ g}$" },
+    { q: "ケイ素 $\\mathrm{Si}\\ 14\\text{ g}$ の物質量は何 $\\text{mol}$ か。", a: ["0.50", "0.5", "0.50mol", "0.5mol"], displayA: "$0.50\\text{ mol}$", exp: "$\\mathrm{Si}$ の原子量は $28$。<br>計算: $\\frac{14\\text{ g}}{28\\text{ g/mol}} = 0.50\\text{ mol}$" },
+    { q: "キセノン $\\mathrm{Xe}\\ 0.050\\text{ mol}$ に含まれるキセノン原子の数は何個か。", a: ["3.0*10^22", "3x10^22", "3.0x10^22", "3.0×10^22", "3.0*10^22個"], displayA: "$3.0 \\times 10^{22}\\text{ 個}$", exp: "計算: $0.050\\text{ mol} \\times 6.0 \\times 10^{23}/\\text{mol} = 3.0 \\times 10^{22}\\text{ 個}$" },
+    { q: "塩化カリウム $\\mathrm{KCl}\\ 4.5 \\times 10^{23}\\text{ 個}$ の物質量は何 $\\text{mol}$ か。", a: ["0.75", "0.75mol"], displayA: "$0.75\\text{ mol}$", exp: "計算: $\\frac{4.5 \\times 10^{23}}{6.0 \\times 10^{23}/\\text{mol}} = 0.75\\text{ mol}$" },
+    { q: "標準状態において、エチレン $\\mathrm{C_2H_4}\\ 0.60\\text{ mol}$ の体積は何 $\\text{L}$ か。", a: ["13.44", "13.4", "13.44L", "13.4L"], displayA: "$13.44\\text{ L}$ (または $13.4\\text{ L}$)", exp: "計算: $0.60\\text{ mol} \\times 22.4\\text{ L/mol} = 13.44\\text{ L}$" },
+    { q: "標準状態において、一酸化炭素 $\\mathrm{CO}\\ 1.12\\text{ L}$ の物質量は何 $\\text{mol}$ か。", a: ["0.050", "0.05", "0.050mol", "0.05mol"], displayA: "$0.050\\text{ mol}$", exp: "計算: $\\frac{1.12\\text{ L}}{22.4\\text{ L/mol}} = 0.050\\text{ mol}$" },
+    { q: "酢酸 $\\mathrm{CH_3COOH}\\ 1.5 \\times 10^{23}\\text{ 個}$ の質量は何 $\\text{g}$ か。", a: ["15", "15g", "15.0"], displayA: "$15\\text{ g}$", exp: "分子量は $60$。<br>物質量: $0.25\\text{ mol}$<br>質量: $0.25\\text{ mol} \\times 60\\text{ g/mol} = 15\\text{ g}$" },
+    { q: "標準状態において、塩化水素 $\\mathrm{HCl}\\ 14.6\\text{ g}$ が占める体積は何 $\\text{L}$ か。", a: ["8.96", "8.96L"], displayA: "$8.96\\text{ L}$", exp: "分子量は $36.5$。<br>物質量: $0.40\\text{ mol}$<br>体積: $0.40\\text{ mol} \\times 22.4\\text{ L/mol} = 8.96\\text{ L}$" },
+    { q: "標準状態で $4.48\\text{ L}$ を占める二酸化窒素 $\\mathrm{NO_2}$ に含まれる分子の数は何個か。", a: ["1.2*10^23", "1.2x10^23", "1.2×10^23", "1.2*10^23個"], displayA: "$1.2 \\times 10^{23}\\text{ 個}$", exp: "物質量: $0.20\\text{ mol}$<br>分子数: $0.20\\text{ mol} \\times 6.0 \\times 10^{23}/\\text{mol} = 1.2 \\times 10^{23}\\text{ 個}$" },
+    { q: "ショ糖 $\\mathrm{C_{12}H_{22}O_{11}}\\ 0.020\\text{ mol}$ を水に溶かして $100\\text{ mL}$ にした溶液のモル濃度は何 $\\text{mol/L}$ か。", a: ["0.20", "0.2", "0.20mol/L", "0.2mol/L"], displayA: "$0.20\\text{ mol/L}$", exp: "モル濃度 $= \\frac{0.020\\text{ mol}}{0.100\\text{ L}} = 0.20\\text{ mol/L}$" },
+    { q: "硝酸カリウム $\\mathrm{KNO_3}\\ 10.1\\text{ g}$ を水に溶かして $250\\text{ mL}$ にした水溶液のモル濃度は何 $\\text{mol/L}$ か。", a: ["0.40", "0.4", "0.40mol/L", "0.4mol/L"], displayA: "$0.40\\text{ mol/L}$", exp: "式量は $101$。<br>物質量: $0.10\\text{ mol}$<br>モル濃度: $\\frac{0.10\\text{ mol}}{0.250\\text{ L}} = 0.40\\text{ mol/L}$" },
+    { q: "$0.40\\text{ mol/L}$ の塩化ナトリウム $\\mathrm{NaCl}$ 水溶液を $500\\text{ mL}$ 調製したい。必要な $\\mathrm{NaCl}$ の質量は何 $\\text{g}$ か。", a: ["11.7", "11.7g"], displayA: "$11.7\\text{ g}$", exp: "必要な物質量: $0.20\\text{ mol}$<br>必要な質量: $0.20\\text{ mol} \\times 58.5\\text{ g/mol} = 11.7\\text{ g}$" },
+    { q: "標準状態において、ある気体の密度が $1.96\\text{ g/L}$ であった。この気体の分子量を求めよ。", a: ["44", "44.0"], displayA: "$44$", exp: "モル質量 $= 1.96\\text{ g/L} \\times 22.4\\text{ L/mol} \\approx 44\\text{ g/mol}$。<br>したがって、分子量は $44$。" },
+    { q: "メタン $\\mathrm{CH_4}\\ 8.0\\text{ g}$ に含まれる「水素原子 $\\mathrm{H}$」の総数は何個か。", a: ["1.2*10^24", "1.2x10^24", "1.2×10^24", "1.2*10^24個"], displayA: "$1.2 \\times 10^{24}\\text{ 個}$", exp: "$\\mathrm{CH_4}$ の物質量: $0.50\\text{ mol}$<br>$\\mathrm{H}$ 原子数 $= 0.50\\text{ mol} \\times 4 \\times 6.0 \\times 10^{23}/\\text{mol} = 1.2 \\times 10^{24}\\text{ 個}$" },
+    { q: "同温・同圧において、ある気体Zの密度は二酸化炭素 $\\mathrm{CO_2}$ の密度の $0.636$ 倍であった。気体Zの分子量を求めよ。", a: ["28", "28.0"], displayA: "$28$", exp: "気体Zの分子量 $= 44 \\times 0.636 \\approx 28$" }
+  ],
+  set7: [
+    { q: "マグネシウム $\\mathrm{Mg}\\ 0.40\\text{ mol}$ の質量は何 $\\text{g}$ か。", a: ["9.6", "9.6g"], displayA: "$9.6\\text{ g}$", exp: "$\\mathrm{Mg}$ の原子量は $24$。<br>計算: $0.40\\text{ mol} \\times 24\\text{ g/mol} = 9.6\\text{ g}$" },
+    { q: "炭酸カルシウム $\\mathrm{CaCO_3}\\ 25\\text{ g}$ の物質量は何 $\\text{mol}$ か。", a: ["0.25", "0.25mol"], displayA: "$0.25\\text{ mol}$", exp: "式量は $100$。<br>計算: $\\frac{25\\text{ g}}{100\\text{ g/mol}} = 0.25\\text{ mol}$" },
+    { q: "アルゴン $\\mathrm{Ar}\\ 0.15\\text{ mol}$ に含まれるアルゴン原子の数は何個か。", a: ["9.0*10^22", "9x10^22", "9.0x10^22", "9.0×10^22", "9.0*10^22個"], displayA: "$9.0 \\times 10^{22}\\text{ 個}$", exp: "計算: $0.15\\text{ mol} \\times 6.0 \\times 10^{23}/\\text{mol} = 9.0 \\times 10^{22}\\text{ 個}$" },
+    { q: "一酸化炭素 $\\mathrm{CO}\\ 2.4 \\times 10^{23}\\text{ 個}$ の物質量は何 $\\text{mol}$ か。", a: ["0.40", "0.4", "0.40mol", "0.4mol"], displayA: "$0.40\\text{ mol}$", exp: "計算: $\\frac{2.4 \\times 10^{23}}{6.0 \\times 10^{23}/\\text{mol}} = 0.40\\text{ mol}$" },
+    { q: "標準状態において、エタン $\\mathrm{C_2H_6}\\ 0.30\\text{ mol}$ の体積は何 $\\text{L}$ か。", a: ["6.72", "6.72L"], displayA: "$6.72\\text{ L}$", exp: "計算: $0.30\\text{ mol} \\times 22.4\\text{ L/mol} = 6.72\\text{ L}$" },
+    { q: "標準状態において、酸素 $\\mathrm{O_2}\\ 1.68\\text{ L}$ の物質量は何 $\\text{mol}$ か。", a: ["0.075", "0.075mol"], displayA: "$0.075\\text{ mol}$", exp: "計算: $\\frac{1.68\\text{ L}}{22.4\\text{ L/mol}} = 0.075\\text{ mol}$" },
+    { q: "ショ糖 $\\mathrm{C_{12}H_{22}O_{11}}\\ 3.0 \\times 10^{22}\\text{ 個}$ の質量は何 $\\text{g}$ か。", a: ["17.1", "17", "17.1g", "17g"], displayA: "$17.1\\text{ g}$ (または $17\\text{ g}$)", exp: "分子量は $342$。<br>物質量: $0.050\\text{ mol}$<br>質量: $0.050\\text{ mol} \\times 342\\text{ g/mol} = 17.1\\text{ g}$" },
+    { q: "標準状態において、窒素 $\\mathrm{N_2}\\ 1.4\\text{ g}$ が占める体積は何 $\\text{L}$ か。", a: ["1.12", "1.12L"], displayA: "$1.12\\text{ L}$", exp: "分子量は $28$。<br>物質量: $0.050\\text{ mol}$<br>体積: $0.050\\text{ mol} \\times 22.4\\text{ L/mol} = 1.12\\text{ L}$" },
+    { q: "標準状態で $6.72\\text{ L}$ を占める二酸化炭素 $\\mathrm{CO_2}$ に含まれる分子の数は何個か。", a: ["1.8*10^23", "1.8x10^23", "1.8×10^23", "1.8*10^23個"], displayA: "$1.8 \\times 10^{23}\\text{ 個}$", exp: "物質量: $0.30\\text{ mol}$<br>分子数: $0.30\\text{ mol} \\times 6.0 \\times 10^{23}/\\text{mol} = 1.8 \\times 10^{23}\\text{ 個}$" },
+    { q: "グルコース $\\mathrm{C_6H_{12}O_6}\\ 0.15\\text{ mol}$ を水に溶かして $300\\text{ mL}$ にした溶液のモル濃度は何 $\\text{mol/L}$ か。", a: ["0.50", "0.5", "0.50mol/L", "0.5mol/L"], displayA: "$0.50\\text{ mol/L}$", exp: "モル濃度 $= \\frac{0.15\\text{ mol}}{0.300\\text{ L}} = 0.50\\text{ mol/L}$" },
+    { q: "硝酸 $\\mathrm{HNO_3}\\ 12.6\\text{ g}$ を水に溶かして $200\\text{ mL}$ にした水溶液のモル濃度は何 $\\text{mol/L}$ か。", a: ["1.0", "1", "1.0mol/L", "1mol/L"], displayA: "$1.0\\text{ mol/L}$", exp: "分子量は $63$。<br>物質量: $0.20\\text{ mol}$<br>モル濃度: $\\frac{0.20\\text{ mol}}{0.200\\text{ L}} = 1.0\\text{ mol/L}$" },
+    { q: "$0.30\\text{ mol/L}$ の塩化ナトリウム $\\mathrm{NaCl}$ 水溶液を $250\\text{ mL}$ 調製したい。必要な $\\mathrm{NaCl}$ の質量は何 $\\text{g}$ か。", a: ["4.39", "4.4", "4.3875", "4.39g", "4.4g"], displayA: "$4.39\\text{ g}$ (または $4.4\\text{ g}$)", exp: "式量は $58.5$。<br>必要な物質量: $0.075\\text{ mol}$<br>必要な質量: $0.075\\text{ mol} \\times 58.5\\text{ g/mol} = 4.3875\\text{ g} \\approx 4.39\\text{ g}$" },
+    { q: "標準状態において、ある未知気体の密度が $2.50\\text{ g/L}$ であった。この気体の分子量を求めよ。", a: ["56", "56.0"], displayA: "$56$", exp: "モル質量 $= 2.50\\text{ g/L} \\times 22.4\\text{ L/mol} = 56\\text{ g/mol}$。<br>したがって、分子量は $56$。" },
+    { q: "エタノール $\\mathrm{C_2H_5OH}\\ 23\\text{ g}$ に含まれる「水素原子 $\\mathrm{H}$」の総数は何個か。", a: ["1.8*10^24", "1.8x10^24", "1.8×10^24", "1.8*10^24個"], displayA: "$1.8 \\times 10^{24}\\text{ 個}$", exp: "$\\mathrm{C_2H_5OH}$ の物質量: $0.50\\text{ mol}$<br>$\\mathrm{H}$ 原子数 $= 0.50\\text{ mol} \\times 6 \\times 6.0 \\times 10^{23}/\\text{mol} = 1.8 \\times 10^{24}\\text{ 個}$" },
+    { q: "同温・同圧において、ある気体Wの密度はメタン $\\mathrm{CH_4}$ の密度の $2.75$ 倍であった。気体Wの分子量を求めよ。", a: ["44", "44.0"], displayA: "$44$", exp: "$\\mathrm{CH_4}$ の分子量 $= 16$。<br>気体Wの分子量 $= 16 \\times 2.75 = 44$" }
+  ],
+  set8: [
+    { q: "リチウム $\\mathrm{Li}\\ 0.60\\text{ mol}$ の質量は何 $\\text{g}$ か。", a: ["4.2", "4.2g"], displayA: "$4.2\\text{ g}$", exp: "$\\mathrm{Li}$ の原子量は $7.0$。<br>計算: $0.60\\text{ mol} \\times 7.0\\text{ g/mol} = 4.2\\text{ g}$" },
+    { q: "カリウム $\\mathrm{K}\\ 15.6\\text{ g}$ の物質量は何 $\\text{mol}$ か。", a: ["0.40", "0.4", "0.40mol", "0.4mol"], displayA: "$0.40\\text{ mol}$", exp: "$\\mathrm{K}$ の原子量は $39$。<br>計算: $\\frac{15.6\\text{ g}}{39\\text{ g/mol}} = 0.40\\text{ mol}$" },
+    { q: "銅原子 $\\mathrm{Cu}\\ 0.050\\text{ mol}$ の個数は何個か。", a: ["3.0*10^22", "3x10^22", "3.0x10^22", "3.0×10^22", "3.0*10^22個"], displayA: "$3.0 \\times 10^{22}\\text{ 個}$", exp: "計算: $0.050\\text{ mol} \\times 6.0 \\times 10^{23}/\\text{mol} = 3.0 \\times 10^{22}\\text{ 個}$" },
+    { q: "メタン分子 $\\mathrm{CH_4}\\ 5.4 \\times 10^{23}\\text{ 個}$ の物質量は何 $\\text{mol}$ か。", a: ["0.90", "0.9", "0.90mol", "0.9mol"], displayA: "$0.90\\text{ mol}$", exp: "計算: $\\frac{5.4 \\times 10^{23}}{6.0 \\times 10^{23}/\\text{mol}} = 0.90\\text{ mol}$" },
+    { q: "標準状態において、アセチレン $\\mathrm{C_2H_2}\\ 0.45\\text{ mol}$ の体積は何 $\\text{L}$ か。", a: ["10.08", "10.1", "10.08L", "10.1L"], displayA: "$10.08\\text{ L}$ (または $10.1\\text{ L}$)", exp: "計算: $0.45\\text{ mol} \\times 22.4\\text{ L/mol} = 10.08\\text{ L}$" },
+    { q: "標準状態において、二酸化硫黄 $\\mathrm{SO_2}\\ 3.36\\text{ L}$ の物質量は何 $\\text{mol}$ か。", a: ["0.15", "0.15mol"], displayA: "$0.15\\text{ mol}$", exp: "計算: $\\frac{3.36\\text{ L}}{22.4\\text{ L/mol}} = 0.15\\text{ mol}$" },
+    { q: "フルクトース $\\mathrm{C_6H_{12}O_6}\\ 3.0 \\times 10^{23}\\text{ 個}$ の質量は何 $\\text{g}$ か。", a: ["90", "90g", "90.0"], displayA: "$90\\text{ g}$", exp: "分子量は $180$。<br>物質量: $0.50\\text{ mol}$<br>質量: $0.50\\text{ mol} \\times 180\\text{ g/mol} = 90\\text{ g}$" },
+    { q: "標準状態において、一酸化炭素 $\\mathrm{CO}\\ 7.0\\text{ g}$ が占める体積は何 $\\text{L}$ か。", a: ["5.6", "5.6L"], displayA: "$5.6\\text{ L}$", exp: "分子量は $28$。<br>物質量: $0.25\\text{ mol}$<br>体積: $0.25\\text{ mol} \\times 22.4\\text{ L/mol} = 5.6\\text{ L}$" },
+    { q: "標準状態で $1.12\\text{ L}$ を占めるオゾン $\\mathrm{O_3}$ に含まれるオゾン分子の数は何個か。", a: ["3.0*10^22", "3x10^22", "3.0x10^22", "3.0×10^22", "3.0*10^22個"], displayA: "$3.0 \\times 10^{22}\\text{ 個}$", exp: "物質量: $0.050\\text{ mol}$<br>分子数: $0.050\\text{ mol} \\times 6.0 \\times 10^{23}/\\text{mol} = 3.0 \\times 10^{22}\\text{ 個}$" },
+    { q: "塩化カリウム $\\mathrm{KCl}\\ 0.080\\text{ mol}$ を水に溶かして $400\\text{ mL}$ にした溶液のモル濃度は何 $\\text{mol/L}$ か。", a: ["0.20", "0.2", "0.20mol/L", "0.2mol/L"], displayA: "$0.20\\text{ mol/L}$", exp: "モル濃度 $= \\frac{0.080\\text{ mol}}{0.400\\text{ L}} = 0.20\\text{ mol/L}$" },
+    { q: "硫酸銅(II) $\\mathrm{CuSO_4}\\ 16.0\\text{ g}$ を水に溶かして $500\\text{ mL}$ にした水溶液のモル濃度は何 $\\text{mol/L}$ か。", a: ["0.20", "0.2", "0.20mol/L", "0.2mol/L"], displayA: "$0.20\\text{ mol/L}$", exp: "式量は $160$。<br>物質量: $0.10\\text{ mol}$<br>モル濃度: $\\frac{0.10\\text{ mol}}{0.500\\text{ L}} = 0.20\\text{ mol/L}$" },
+    { q: "$0.15\\text{ mol/L}$ の水酸化ナトリウム $\\mathrm{NaOH}$ 水溶液を $200\\text{ mL}$ 調製したい。必要な $\\mathrm{NaOH}$ の質量は何 $\\text{g}$ か。", a: ["1.2", "1.2g"], displayA: "$1.2\\text{ g}$", exp: "必要な物質量: $0.030\\text{ mol}$<br>必要な質量: $0.030\\text{ mol} \\times 40\\text{ g/mol} = 1.2\\text{ g}$" },
+    { q: "標準状態において、ある未知気体の密度が $1.34\\text{ g/L}$ であった。この気体の分子量を求めよ。", a: ["30", "30.0"], displayA: "$30$", exp: "モル質量 $= 1.34\\text{ g/L} \\times 22.4\\text{ L/mol} \\approx 30\\text{ g/mol}$。<br>したがって、分子量は $30$。" },
+    { q: "シクロヘキサン $\\mathrm{C_6H_{12}}\\ 4.2\\text{ g}$ に含まれる「炭素原子 $\\mathrm{C}$」の総数は何個か。", a: ["1.8*10^23", "1.8x10^23", "1.8×10^23", "1.8*10^23個"], displayA: "$1.8 \\times 10^{23}\\text{ 個}$", exp: "分子量は $84$。<br>物質量: $0.050\\text{ mol}$<br>$\\mathrm{C}$ 原子数 $= 0.050\\text{ mol} \\times 6 \\times 6.0 \\times 10^{23}/\\text{mol} = 1.8 \\times 10^{23}\\text{ 個}$" },
+    { q: "同温・同圧において、ある気体Aの密度は酸素 $\\mathrm{O_2}$ の密度の $0.875$ 倍であった。気体Aの分子量を求めよ。", a: ["28", "28.0"], displayA: "$28$", exp: "$\\mathrm{O_2}$ の分子量 $= 32$。<br>気体Aの分子量 $= 32 \\times 0.875 = 28$" }
   ],
   set9: [
     { q: "ケイ素 $\\mathrm{Si}\\ 0.25\\text{ mol}$ の質量は何 $\\text{g}$ か。", a: ["7", "7.0", "7.0g", "7g"], displayA: "$7.0\\text{ g}$", exp: "$\\mathrm{Si}$ の原子量は $28$。<br>計算: $0.25\\text{ mol} \\times 28\\text{ g/mol} = 7.0\\text{ g}$" },
@@ -373,33 +533,29 @@ const questionSets = {
     { q: "硫化水素分子 $\\mathrm{H_2S}\\ 3.6 \\times 10^{23}\\text{ 個}$ の物質量は何 $\\text{mol}$ か。", a: ["0.60", "0.6", "0.60mol", "0.6mol"], displayA: "$0.60\\text{ mol}$", exp: "計算: $\\frac{3.6 \\times 10^{23}}{6.0 \\times 10^{23}/\\text{mol}} = 0.60\\text{ mol}$" },
     { q: "標準状態において、ブタン $\\mathrm{C_4H_{10}}\\ 0.25\\text{ mol}$ の体積は何 $\\text{L}$ か。", a: ["5.6", "5.6L"], displayA: "$5.6\\text{ L}$", exp: "計算: $0.25\\text{ mol} \\times 22.4\\text{ L/mol} = 5.6\\text{ L}$" },
     { q: "標準状態において、一酸化窒素 $\\mathrm{NO}\\ 4.48\\text{ L}$ の物質量は何 $\\text{mol}$ か。", a: ["0.20", "0.2", "0.20mol", "0.2mol"], displayA: "$0.20\\text{ mol}$", exp: "計算: $\\frac{4.48\\text{ L}}{22.4\\text{ L/mol}} = 0.20\\text{ mol}$" },
-    { q: "グリセリン $\\mathrm{C_3H_8O_3}\\ 1.2 \\times 10^{23}\\text{ 個}$ の質量は何 $\\text{g}$ か。", a: ["18.4", "18.4g"], displayA: "$18.4\\text{ g}$", exp: "グリセリンの分子量は $12 \\times 3 + 1.0 \\times 8 + 16 \\times 3 = 92$。<br>物質量: $\\frac{1.2 \\times 10^{23}}{6.0 \\times 10^{23}/\\text{mol}} = 0.20\\text{ mol}$<br>質量: $0.20\\text{ mol} \\times 92\\text{ g/mol} = 18.4\\text{ g}$" },
-    { q: "標準状態において、プロペン $\\mathrm{C_3H_6}\\ 8.4\\text{ g}$ が占める体積は何 $\\text{L}$ か。", a: ["4.48", "4.48L"], displayA: "$4.48\\text{ L}$", exp: "$\\mathrm{C_3H_6}$ の分子量は $12 \\times 3 + 1.0 \\times 6 = 42$。<br>物質量: $\\frac{8.4\\text{ g}}{42\\text{ g/mol}} = 0.20\\text{ mol}$<br>体積: $0.20\\text{ mol} \\times 22.4\\text{ L/mol} = 4.48\\text{ L}$" },
-    { q: "標準状態で $8.96\\text{ L}$ を占める二酸化炭素 $\\mathrm{CO_2}$ に含まれる分子の数は何個か。", a: ["2.4*10^23", "2.4x10^23", "2.4×10^23", "2.4*10^23個"], displayA: "$2.4 \\times 10^{23}\\text{ 個}$", exp: "物質量: $\\frac{8.96\\text{ L}}{22.4\\text{ L/mol}} = 0.40\\text{ mol}$<br>分子数: $0.40\\text{ mol} \\times 6.0 \\times 10^{23}/\\text{mol} = 2.4 \\times 10^{23}\\text{ 個}$" },
-    { q: "溶質 $0.060\\text{ mol}$ を水に溶かして $150\\text{ mL}$ にした溶液のモル濃度は何 $\\text{mol/L}$ か。", a: ["0.40", "0.4", "0.40mol/L", "0.4mol/L"], displayA: "$0.40\\text{ mol/L}$", exp: "溶液の体積を $\\text{L}$ 単位に直す ($150\\text{ mL} = 0.150\\text{ L}$)。<br>モル濃度 $= \\frac{0.060\\text{ mol}}{0.150\\text{ L}} = 0.40\\text{ mol/L}$" },
+    { q: "グリセリン $\\mathrm{C_3H_8O_3}\\ 1.2 \\times 10^{23}\\text{ 個}$ の質量は何 $\\text{g}$ か。", a: ["18.4", "18", "18.4g", "18g"], displayA: "$18.4\\text{ g}$ (または $18\\text{ g}$)", exp: "グリセリンの分子量は $92$。<br>物質量: $\\frac{1.2 \\times 10^{23}}{6.0 \\times 10^{23}/\\text{mol}} = 0.20\\text{ mol}$<br>質量: $0.20\\text{ mol} \\times 92\\text{ g/mol} = 18.4\\text{ g}$" },
+    { q: "標準状態において、プロペン $\\mathrm{C_3H_6}\\ 8.4\\text{ g}$ が占める体積は何 $\\text{L}$ か。", a: ["4.48", "4.48L"], displayA: "$4.48\\text{ L}$", exp: "$\\mathrm{C_3H_6}$ の分子量は $42$。<br>物質量: $\\frac{8.4\\text{ g}}{42\\text{ g/mol}} = 0.20\\text{ mol}$<br>体積: $0.20\\text{ mol} \\times 22.4\\text{ L/mol} = 4.48\\text{ L}$" },
+    { q: "標準状態で $13.44\\text{ L}$ を占める塩素 $\\mathrm{Cl_2}$ に含まれる塩素分子の数は何個か。", a: ["3.6*10^23", "3.6x10^23", "3.6×10^23", "3.6*10^23個"], displayA: "$3.6 \\times 10^{23}\\text{ 個}$", exp: "物質量: $\\frac{13.44\\text{ L}}{22.4\\text{ L/mol}} = 0.60\\text{ mol}$<br>分子数: $0.60\\text{ mol} \\times 6.0 \\times 10^{23}/\\text{mol} = 3.6 \\times 10^{23}\\text{ 個}$" },
+    { q: "塩化カルシウム $\\mathrm{CaCl_2}\\ 0.060\\text{ mol}$ を水に溶かして $150\\text{ mL}$ にした溶液のモル濃度は何 $\\text{mol/L}$ か。", a: ["0.40", "0.4", "0.40mol/L", "0.4mol/L"], displayA: "$0.40\\text{ mol/L}$", exp: "モル濃度 $= \\frac{0.060\\text{ mol}}{0.150\\text{ L}} = 0.40\\text{ mol/L}$" },
     { q: "硫酸 $\\mathrm{H_2SO_4}\\ 24.5\\text{ g}$ を水に溶かして $250\\text{ mL}$ にした水溶液のモル濃度は何 $\\text{mol/L}$ か。", a: ["1.0", "1", "1.0mol/L", "1mol/L"], displayA: "$1.0\\text{ mol/L}$", exp: "$\\mathrm{H_2SO_4}$ の分子量は $98$。<br>物質量: $\\frac{24.5\\text{ g}}{98\\text{ g/mol}} = 0.25\\text{ mol}$<br>モル濃度: $\\frac{0.25\\text{ mol}}{0.250\\text{ L}} = 1.0\\text{ mol/L}$" },
-    { q: "$0.25\\text{ mol/L}$ の炭酸ナトリウム $\\mathrm{Na_2CO_3}$ 水溶液を $400\\text{ mL}$ 調製したい。必要な $\\mathrm{Na_2CO_3}$ の質量は何 $\\text{g}$ か。", a: ["10.6", "11", "10.6g", "11g"], displayA: "$10.6\\text{ g}$ (または $11\\text{ g}$)", exp: "$\\mathrm{Na_2CO_3}$ の式量は $23 \\times 2 + 12 + 16 \\times 3 = 106$。<br>必要な物質量: $0.25\\text{ mol/L} \\times 0.400\\text{ L} = 0.10\\text{ mol}$<br>必要な質量: $0.10\\text{ mol} \\times 106\\text{ g/mol} = 10.6\\text{ g}$" },
-    { q: "標準状態において、ある未知気体の密度が $1.96\\text{ g/L}$ であった。この気体の分子量を求めよ。", a: ["44", "44.0"], displayA: "$44$", exp: "モル質量 $= 1.96\\text{ g/L} \\times 22.4\\text{ L/mol} \\approx 43.9 \\approx 44\\text{ g/mol}$。<br>したがって、分子量は $44$。" },
-    { q: "トルエン $\\mathrm{C_7H_8}\\ 18.4\\text{ g}$ に含まれる「水素原子 $\\mathrm{H}$」の総数は何個か。", a: ["9.6*10^23", "9.6x10^23", "9.6×10^23", "9.6*10^23個"], displayA: "$9.6 \\times 10^{23}\\text{ 個}$", exp: "$\\mathrm{C_7H_8}$ の分子量は $92$。<br>物質量: $\\frac{18.4\\text{ g}}{92\\text{ g/mol}} = 0.20\\text{ mol}$<br>$\\mathrm{H}$ 原子数 $= 0.20\\text{ mol} \\times 8 \\times 6.0 \\times 10^{23}/\\text{mol} = 9.6 \\times 10^{23}\\text{ 個}$" },
+    { q: "$0.25\\text{ mol/L}$ の炭酸ナトリウム $\\mathrm{Na_2CO_3}$ 水溶液を $400\\text{ mL}$ 調製したい。必要な $\\mathrm{Na_2CO_3}$ の質量は何 $\\text{g}$ か。", a: ["10.6", "11", "10.6g", "11g"], displayA: "$10.6\\text{ g}$ (または $11\\text{ g}$)", exp: "$\\mathrm{Na_2CO_3}$ の式量は $106$。<br>必要な物質量: $0.10\\text{ mol}$<br>必要な質量: $0.10\\text{ mol} \\times 106\\text{ g/mol} = 10.6\\text{ g}$" },
+    { q: "標準状態において、ある未知気体の密度が $1.96\\text{ g/L}$ であった。この気体の分子量を求めよ。", a: ["44", "44.0"], displayA: "$44$", exp: "モル質量 $= 1.96\\text{ g/L} \\times 22.4\\text{ L/mol} \\approx 44\\text{ g/mol}$。<br>したがって、分子量は $44$。" },
+    { q: "トルエン $\\mathrm{C_7H_8}\\ 18.4\\text{ g}$ に含まれる「水素原子 $\\mathrm{H}$」の総数は何個か。", a: ["9.6*10^23", "9.6x10^23", "9.6×10^23", "9.6*10^23個"], displayA: "$9.6 \\times 10^{23}\\text{ 個}$", exp: "$\\mathrm{C_7H_8}$ の分子量は $92$。<br>物質量: $0.20\\text{ mol}$<br>$\\mathrm{H}$ 原子数 $= 0.20\\text{ mol} \\times 8 \\times 6.0 \\times 10^{23}/\\text{mol} = 9.6 \\times 10^{23}\\text{ 個}$" },
     { q: "同温・同圧において、ある気体の密度は窒素 $\\mathrm{N_2}$ の密度の $2.25$ 倍であった。この気体の分子量を求めよ。", a: ["63", "63.0"], displayA: "$63$", exp: "$\\mathrm{N_2}$ の分子量 $= 28$。<br>気体の分子量 $= 28 \\times 2.25 = 63$" }
   ]
 };
 
-// set2〜set8のサンプルデータ補完処理
-(function fillRemainingSets() {
-  const sampleData = questionSets.set1;
-  for(let i=2; i<=8; i++) {
-    if(!questionSets[`set${i}`]) {
-      questionSets[`set${i}`] = sampleData;
-    }
-  }
-})();
-
-let currentSetKey = "all";
+let currentSetKey = "ta_all";
 let questions = [];
 let currentIndex = 0;
-let score = 0;
 let isAnswered = false;
+
+// タイムアタック関連変数
+let isTimeAttack = true;
+let timerInterval = null;
+let remainingTime = 180; // 3分 (180秒)
+let correctCount = 0;
+let incorrectCount = 0;
 
 // 配列のシャッフル (フィッシャー–イエーツ)
 function shuffle(array) {
@@ -431,17 +587,18 @@ function prepareQuestions() {
   });
 
   let pool = [];
-  if (currentSetKey === "all") {
+  const key = currentSetKey;
+
+  if (key === "all" || key === "ta_all") {
     pool = allWithLevel;
-  } else if (currentSetKey === "level1") {
+  } else if (key === "level1" || key === "ta_lvl1") {
     pool = allWithLevel.filter(q => q.level === 1);
-  } else if (currentSetKey === "level2") {
+  } else if (key === "level2" || key === "ta_lvl2") {
     pool = allWithLevel.filter(q => q.level === 2);
-  } else if (currentSetKey === "level3") {
+  } else if (key === "level3" || key === "ta_lvl3") {
     pool = allWithLevel.filter(q => q.level === 3);
   } else {
-    // 特定セット選択時
-    pool = allWithLevel.filter(q => q.setKey === currentSetKey);
+    pool = allWithLevel.filter(q => q.setKey === key);
   }
 
   return shuffle(pool);
@@ -449,10 +606,30 @@ function prepareQuestions() {
 
 // アプリの初期化
 function initApp() {
+  clearInterval(timerInterval);
+  isTimeAttack = currentSetKey.startsWith("ta_");
+
   questions = prepareQuestions();
   currentIndex = 0;
-  score = 0;
+  correctCount = 0;
+  incorrectCount = 0;
   isAnswered = false;
+
+  const timerEl = document.getElementById("timerDisplay");
+  const progressBar = document.getElementById("progressBar");
+  const actionBtn = document.getElementById("actionBtn");
+
+  if (isTimeAttack) {
+    remainingTime = 180;
+    timerEl.style.display = "block";
+    progressBar.classList.add("ta-mode");
+    actionBtn.classList.add("btn-ta");
+    startTimer();
+  } else {
+    timerEl.style.display = "none";
+    progressBar.classList.remove("ta-mode");
+    actionBtn.classList.remove("btn-ta");
+  }
 
   document.getElementById("quizScreen").style.display = "block";
   document.getElementById("resultScreen").style.display = "none";
@@ -470,6 +647,31 @@ function initApp() {
   });
 }
 
+// タイムアタック用タイマー
+function startTimer() {
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    remainingTime--;
+    updateTimerDisplay();
+
+    if (remainingTime <= 0) {
+      clearInterval(timerInterval);
+      finishTimeAttack();
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(remainingTime / 60).toString().padStart(2, '0');
+  const s = (remainingTime % 60).toString().padStart(2, '0');
+  document.getElementById("timerDisplay").innerText = `⏱️ 残り時間: ${m}:${s}`;
+  
+  if (isTimeAttack) {
+    const percent = ((180 - remainingTime) / 180) * 100;
+    document.getElementById("progressBar").style.width = `${percent}%`;
+  }
+}
+
 // 出題範囲変更
 function changeSet() {
   currentSetKey = document.getElementById("setSelect").value;
@@ -478,15 +680,27 @@ function changeSet() {
 
 // 問題の読み込み
 function loadQuestion() {
+  if (currentIndex >= questions.length) {
+    questions = questions.concat(prepareQuestions());
+  }
+
   const q = questions[currentIndex];
   isAnswered = false;
 
-  const progressPercent = ((currentIndex) / questions.length) * 100;
-  document.getElementById("progressBar").style.width = `${progressPercent}%`;
-  document.getElementById("questionNum").innerText = `第 ${currentIndex + 1} 問 / 全 ${questions.length} 問`;
-  document.getElementById("scoreText").innerText = `正解数: ${score} / ${currentIndex}`;
+  if (!isTimeAttack) {
+    const progressPercent = ((currentIndex) / questions.length) * 100;
+    document.getElementById("progressBar").style.width = `${progressPercent}%`;
+  }
 
-  // レベルバッジの設定
+  document.getElementById("questionNum").innerText = `第 ${currentIndex + 1} 問`;
+  
+  if (isTimeAttack) {
+    const currentScore = (correctCount * 10) - (incorrectCount * 5);
+    document.getElementById("scoreText").innerHTML = `スコア: <strong>${currentScore}</strong> 点`;
+  } else {
+    document.getElementById("scoreText").innerText = `正解数: ${correctCount} / ${currentIndex}`;
+  }
+
   const badgeEl = document.getElementById("levelBadge");
   badgeEl.innerText = `レベル${q.level}`;
   badgeEl.className = `level-badge lvl-${q.level}`;
@@ -547,16 +761,22 @@ function checkAnswer() {
   feedbackCard.style.display = "block";
 
   if (isCorrect) {
-    score++;
+    correctCount++;
     feedbackCard.className = "feedback-card correct";
     feedbackTitle.innerHTML = "<span>⭕</span> 正解！";
   } else {
+    incorrectCount++;
     feedbackCard.className = "feedback-card incorrect";
     feedbackTitle.innerHTML = "<span>❌</span> 不正解...";
   }
 
   correctAnswerText.innerHTML = `<strong>正答:</strong> ${q.displayA}`;
   explanationText.innerHTML = `<strong>解説:</strong><br>${q.exp}`;
+
+  if (isTimeAttack) {
+    const currentScore = (correctCount * 10) - (incorrectCount * 5);
+    document.getElementById("scoreText").innerHTML = `スコア: <strong>${currentScore}</strong> 点`;
+  }
 
   document.getElementById("actionBtn").innerText = "次の問題へ (Enter)";
   document.getElementById("keyHint").innerText = "[Enter] キーを押すと次の問題へ移動します。";
@@ -567,19 +787,39 @@ function checkAnswer() {
 // 次の問題へ
 function nextQuestion() {
   currentIndex++;
-  if (currentIndex < questions.length) {
-    loadQuestion();
-  } else {
+  if (!isTimeAttack && currentIndex >= questions.length) {
     showResult();
+  } else {
+    loadQuestion();
   }
+}
+
+// タイムアタック終了処理
+function finishTimeAttack() {
+  showResult();
 }
 
 // 結果表示
 function showResult() {
-  document.getElementById("progressBar").style.width = "100%";
+  clearInterval(timerInterval);
   document.getElementById("quizScreen").style.display = "none";
   document.getElementById("resultScreen").style.display = "block";
-  document.getElementById("finalScore").innerText = `${score} / ${questions.length}`;
+
+  const totalScore = (correctCount * 10) - (incorrectCount * 5);
+
+  if (isTimeAttack) {
+    document.getElementById("resultTitle").innerText = "⏱️ タイムアップ！";
+    document.getElementById("resultSubtitle").innerText = "3分間のタイムアタック結果";
+    document.getElementById("finalScore").innerText = `${totalScore} 点`;
+    document.getElementById("correctCountText").innerText = correctCount;
+    document.getElementById("incorrectCountText").innerText = incorrectCount;
+    document.getElementById("taBreakdown").style.display = "flex";
+  } else {
+    document.getElementById("resultTitle").innerText = "🎉 演習完了！";
+    document.getElementById("resultSubtitle").innerText = "全問題の解答が終了しました。";
+    document.getElementById("finalScore").innerText = `${correctCount} / ${questions.length} 問正解`;
+    document.getElementById("taBreakdown").style.display = "none";
+  }
 }
 
 // 再スタート
